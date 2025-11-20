@@ -1,7 +1,7 @@
 #include "input.h"
 
 
-global_variable const KeyboardKey input_keymap_table[INPUT_ACTION_COUNT] = {
+static const KeyboardKey input_keymap_table[INPUT_ACTION_COUNT] = {
     KEY_F,
     KEY_R,
     KEY_U,

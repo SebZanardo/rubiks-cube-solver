@@ -6,7 +6,7 @@ BUILD_DIR="build"
 
 # Define all .c files to compile in one place here
 SOURCES=$(cat <<EOF
-src/arena.c
+src/core.c
 src/cube.c
 src/input.c
 src/main.c

@@ -2,7 +2,6 @@
 #define CUBE_H
 
 
-#include "arena.h"
 #include "core.h"
 #include "input.h"
 #include "raylib.h"
@@ -58,37 +57,39 @@ typedef enum {
 //  6 5 4
 //
 // Face colours are in the order Green, Red, White, Blue, Orange, Yellow:
-//    B
+//
 //    W
-//  O G R
+//  O G R B
 //    Y
 //
 // Turns are in the order Front, Right, Up, Back, Left, Down:
-//    B
+//
 //    U
-//  L F R
+//  L F R B
 //    D
 //
 // Tile indexes per face for cube:
-//         0 1 2
-//         7   3
-//         6 5 4
 //
 //         0 1 2
 //         7   3
 //         6 5 4
 //
-//  0 1 2  0 1 2  0 1 2
-//  7   3  7   3  7   3
-//  6 5 4  6 5 4  6 5 4
+//  0 1 2  0 1 2  0 1 2  0 1 2
+//  7   3  7   3  7   3  7   3
+//  6 5 4  6 5 4  6 5 4  6 5 4
 //
 //         0 1 2
 //         7   3
 //         6 5 4
+
+
 typedef struct {
     u32* faces;
 } Cube;
 
+
+enum8(CubeColour) FaceGetTile(u32 face, u8 position);
+enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position);
 
 void CubeInit(Arena* arena, Cube* cube);
 void CubeUpdate(Cube* cube);
@@ -97,10 +98,6 @@ void CubeFaceTurnClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnAntiClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour);
 void CubeRender(Cube* cube, int offset_x, int offset_y, int width, int height);
-
-enum8(CubeColour) FaceGetTile(u32 face, u8 position);
-enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position);
-void FaceRender(u32 face, enum8(CubeColour) colour, int x, int y, int size);
 
 
 #endif  /* CUBE_H */

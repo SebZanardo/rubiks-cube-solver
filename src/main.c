@@ -1,19 +1,18 @@
-#include "arena.h"
+#include "core.h"
 #include "cube.h"
 #include "raylib.h"
 
 
-#define WINDOW_WIDTH 720
-#define WINDOW_HEIGHT 720
-#define WINDOW_CAPTION "rubiks cube solver"
-#define WINDOW_FPS 60
+static const int WINDOW_WIDTH = 720;
+static const int WINDOW_HEIGHT = 720;
+static const char WINDOW_CAPTION[] = "rubiks cube solver";
+static const int WINDOW_FPS = 60;
 
 
 int main(void) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
     InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_CAPTION);
-    printf(WINDOW_CAPTION);
 
     SetTargetFPS(WINDOW_FPS);
     SetRandomSeed(0);
@@ -22,7 +21,7 @@ int main(void) {
     SetWindowIcon(icon);
 
     Arena arena;
-    ArenaInit(&arena, UINT32_MAX);
+    ArenaInit(&arena, Megabytes(4));
 
     Cube cube;
     CubeInit(&arena, &cube);
@@ -33,7 +32,7 @@ int main(void) {
         CubeUpdate(&cube);
 
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground(GRAY);
         CubeRender(&cube, 0, 0, GetScreenWidth(), GetScreenHeight());
         EndDrawing();
     }
