@@ -32,6 +32,16 @@ static const Color CUBE_COLOUR_TABLE[CUBE_COLOUR_COUNT] = {
     (Color) { 255, 155, 0,   255 },
     (Color) { 255, 255, 0,   255 },
 };
+static const u8 CUBE_FACE_TILE_INDEX_TABLE[3][3] = {
+    {0, 1, 2},
+    {7, 8, 3},
+    {6, 5, 4}
+};
+static const enum8(CubeColour) CUBE_FACE_COLOUR_TABLE[3][4] = {
+    {CUBE_COLOUR_COUNT, CUBE_WHITE, CUBE_COLOUR_COUNT, CUBE_COLOUR_COUNT},
+    {CUBE_ORANGE, CUBE_GREEN, CUBE_RED, CUBE_BLUE},
+    {CUBE_COLOUR_COUNT, CUBE_YELLOW, CUBE_COLOUR_COUNT, CUBE_COLOUR_COUNT}
+};
 static const u8 CUBE_FACE_ROTATION_TABLE[2][4] = {
     {0, 2, 4, 6},
     {1, 3, 5, 7}
@@ -118,30 +128,21 @@ static void FaceRender(Cube* cube, enum8(CubeColour) face_colour, int x, int y, 
     int spacing = size * (1 + TILE_RENDER_SPACING);
     Rectangle tile_rect = (Rectangle) { x, y, size, size };
 
-    // Top row
-    TileRender(tile_rect, FaceGetTile(face, 0));
-    tile_rect.x += spacing;
-    TileRender(tile_rect, FaceGetTile(face, 1));
-    tile_rect.x += spacing;
-    TileRender(tile_rect, FaceGetTile(face, 2));
+    for (int y = 0; y < 3; y++) {
+        tile_rect.x = x;
+        for (int x = 0; x < 3; x++) {
+            u8 tile_index = CUBE_FACE_TILE_INDEX_TABLE[y][x];
 
-    // Middle row
-    tile_rect.x = x;
-    tile_rect.y += spacing;
-    TileRender(tile_rect, FaceGetTile(face, 7));
-    tile_rect.x += spacing;
-    TileRender(tile_rect, face_colour);
-    tile_rect.x += spacing;
-    TileRender(tile_rect, FaceGetTile(face, 3));
-
-    // Bottom row
-    tile_rect.x = x;
-    tile_rect.y += spacing;
-    TileRender(tile_rect, FaceGetTile(face, 6));
-    tile_rect.x += spacing;
-    TileRender(tile_rect, FaceGetTile(face, 5));
-    tile_rect.x += spacing;
-    TileRender(tile_rect, FaceGetTile(face, 4));
+            if (tile_index < FACE_TILE_COUNT) {
+                TileRender(tile_rect, FaceGetTile(face, tile_index));
+            } else {
+                // Centre tile is fixed colour
+                TileRender(tile_rect, face_colour);
+            }
+            tile_rect.x += spacing;
+        }
+        tile_rect.y += spacing;
+    }
 }
 
 void CubeInit(Arena* arena, Cube* cube) {
@@ -278,32 +279,72 @@ void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour) {
     }
 }
 
-void CubeRender(Cube* cube, int offset_x, int offset_y, int width, int height) {
+void CubeRender(Cube* cube, Rectangle cube_rect) {
     int size = MinFloat(
-        (width / CUBE_RENDER_WIDTH),
-        (height / CUBE_RENDER_HEIGHT)
+        cube_rect.width / CUBE_RENDER_WIDTH,
+        cube_rect.height / CUBE_RENDER_HEIGHT
     );
-    int offset_left = (width - CUBE_RENDER_WIDTH * size) / 2;
-    int offset_top = (height - CUBE_RENDER_HEIGHT * size) / 2;
-    int x = offset_x + offset_left + size * FACE_RENDER_OFFSET;
-    int y = offset_y + offset_top + size * TILE_RENDER_SPACING;
+    IntVector2 offset = (IntVector2) {
+        (cube_rect.width - CUBE_RENDER_WIDTH * size) / 2,
+        (cube_rect.height - CUBE_RENDER_HEIGHT * size) / 2
+    };
+    IntVector2 position = (IntVector2) {
+        cube_rect.x + offset.x + size * FACE_RENDER_OFFSET,
+        cube_rect.y + offset.y + size * TILE_RENDER_SPACING
+    };
 
-    // Up
-    FaceRender(cube, CUBE_WHITE, x, y, size);
+    for (int y = 0; y < 3; y++) {
+        position.x = cube_rect.x + offset.x + size * TILE_RENDER_SPACING;
+        for (int x = 0; x < 4; x++) {
+            CubeColour face_colour = CUBE_FACE_COLOUR_TABLE[y][x];
+            if (face_colour < CUBE_COLOUR_COUNT) {
+                FaceRender(cube, face_colour, position.x, position.y, size);
+            }
+            position.x += size * FACE_RENDER_SPACING;
+        }
+        position.y += size * FACE_RENDER_SPACING;
+    }
+}
 
-    // Left, Front, Right, Back
-    x = offset_x + offset_left + size * TILE_RENDER_SPACING;
-    y += size * FACE_RENDER_SPACING;
-    FaceRender(cube, CUBE_ORANGE, x, y, size);
-    x += size * FACE_RENDER_SPACING;
-    FaceRender(cube, CUBE_GREEN, x, y, size);
-    x += size * FACE_RENDER_SPACING;
-    FaceRender(cube, CUBE_RED, x, y, size);
-    x += size * FACE_RENDER_SPACING;
-    FaceRender(cube, CUBE_BLUE, x, y, size);
+Color CubeFaceColour(enum8(CubeColour) colour) {
+    assert(colour < CUBE_COLOUR_COUNT);
+    return CUBE_COLOUR_TABLE[colour];
+}
 
-    // Down
-    x = offset_x + offset_left + size * FACE_RENDER_OFFSET;
-    y += size * FACE_RENDER_SPACING;
-    FaceRender(cube, CUBE_YELLOW, x, y, size);
+void CubeMousePaint(
+    Cube* cube, Vector2 mouse_position, CubeColour colour, Rectangle cube_rect
+) {
+    int size = MinFloat(
+        cube_rect.width / CUBE_RENDER_WIDTH,
+        cube_rect.height / CUBE_RENDER_HEIGHT
+    );
+    IntVector2 offset = (IntVector2) {
+        (cube_rect.width - CUBE_RENDER_WIDTH * size) / 2,
+        (cube_rect.height - CUBE_RENDER_HEIGHT * size) / 2
+    };
+    IntVector2 offset_mouse = (IntVector2) {
+        (mouse_position.x - cube_rect.x - offset.x),
+        (mouse_position.y - cube_rect.y - offset.y)
+    };
+    IntVector2 face_position = (IntVector2) {
+         offset_mouse.x / (size * FACE_RENDER_SPACING),
+         offset_mouse.y / (size * FACE_RENDER_SPACING)
+    };
+    IntVector2 tile_position = (IntVector2) {
+        (offset_mouse.x - (face_position.x * size * FACE_RENDER_SPACING)) / (size * (1 + TILE_RENDER_SPACING)),
+        (offset_mouse.y - (face_position.y * size * FACE_RENDER_SPACING)) / (size * (1 + TILE_RENDER_SPACING)),
+    };
+
+    if (
+        face_position.x >= 0 && face_position.x < 4 &&
+        face_position.y >= 0 && face_position.y < 3 &&
+        tile_position.x >= 0 && tile_position.x < 3 &&
+        tile_position.y >= 0 && tile_position.y < 3
+    ) {
+        CubeColour face_colour = CUBE_FACE_COLOUR_TABLE[face_position.y][face_position.x];
+        u8 tile_index = CUBE_FACE_TILE_INDEX_TABLE[tile_position.y][tile_position.x];
+        if (tile_index < FACE_TILE_COUNT) {
+            FaceSetTile(&cube->faces[face_colour], colour, tile_index);
+        }
+    }
 }

@@ -97,7 +97,9 @@ void CubeSetSolved(Cube* cube);
 void CubeFaceTurnClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnAntiClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour);
-void CubeRender(Cube* cube, int offset_x, int offset_y, int width, int height);
+void CubeRender(Cube* cube, Rectangle cube_rect);
+Color CubeFaceColour(enum8(CubeColour) colour);
+void CubeMousePaint(Cube* cube, Vector2 mouse_position, CubeColour colour, Rectangle cube_rect);
 
 
 #endif  /* CUBE_H */
