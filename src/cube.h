@@ -101,6 +101,7 @@ void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour);
 void CubeRender(Cube* cube, Rectangle cube_rect, bool valid);
 Color CubeFaceColour(enum8(CubeColour) colour);
 void CubeMousePaint(Cube* cube, Vector2 mouse_position, CubeColour colour, Rectangle cube_rect);
-bool CubeValid(Cube* cube);
+bool CubeValid(Arena* arena_temp, Cube* cube);
+
 
 #endif  /* CUBE_H */

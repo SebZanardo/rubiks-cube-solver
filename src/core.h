@@ -92,8 +92,12 @@ u32 MaxI32(i32 a, i32 b);
 u64 MaxI64(i64 a, i64 b);
 float MinFloat(float a, float b);
 float MaxFloat(float a, float b);
+int MinInt(int a, int b);
+int MaxInt(int a, int b);
 
 int ModWrap(int x, int n);
+
+int Index2D(int x, int y, int width, int height);
 
 
 #endif  /* CORE_H */

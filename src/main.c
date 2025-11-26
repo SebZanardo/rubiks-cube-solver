@@ -20,8 +20,13 @@ int main(void) {
     Image icon = LoadImage("src/data/textures/icon.png");
     SetWindowIcon(icon);
 
+    // Main arena should have lots of space as we need to do large DFS search
+    // for solving algorithm
     Arena arena;
-    ArenaInit(&arena, Megabytes(4));
+    ArenaInit(&arena, Gigabytes(1));
+
+    Arena arena_temp;
+    ArenaInit(&arena_temp, Kilobytes(4));
 
     Cube cube;
     CubeInit(&arena, &cube);
@@ -43,7 +48,9 @@ int main(void) {
 
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             CubeMousePaint(&cube, mouse_position, active_colour, cube_rect);
-            valid = CubeValid(&cube);
+
+            valid = CubeValid(&arena_temp, &cube);
+            ArenaReset(&arena_temp);
         }
 
         CubeUpdate(&cube, &valid);

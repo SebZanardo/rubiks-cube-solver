@@ -117,5 +117,12 @@ u32 MaxI32(i32 a, i32 b) { return _Max(a, b); }
 u64 MaxI64(i64 a, i64 b) { return _Max(a, b); }
 float MinFloat(float a, float b) { return _Min(a, b); }
 float MaxFloat(float a, float b) { return _Max(a, b); }
+int MinInt(int a, int b) { return _Min(a, b); }
+int MaxInt(int a, int b) { return _Max(a, b); }
 
 int ModWrap(int x, int n) { return _Mod(x, n); }
+
+int Index2D(int x, int y, int width, int height) {
+    assert(x >= 0 && x < width && y >= 0 && y < height);
+    return y * width + x;
+}

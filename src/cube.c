@@ -2,6 +2,8 @@
 
 
 static const int CUBE_FACE_COUNT = 6;
+static const int CUBE_EDGE_COUNT = 12;
+static const int CUBE_CORNER_COUNT = 8;
 static const int FACE_TILE_COUNT = 8;
 static const int SIDE_TURN_COUNT = 4;
 static const u8 BITMASK_TILE = 0xFu;  // Four bits set to true, 1111
@@ -66,40 +68,40 @@ static const u8 CUBE_SIDE_ROTATION_TABLE[CUBE_COLOUR_COUNT][3][4] = {
     { {4, 0, 0, 0}, {3, 7, 7, 7}, {2, 6, 6, 6} },       // Orange Face
     { {6, 6, 6, 6}, {5, 5, 5, 5}, {4, 4, 4, 4} }        // Yellow Face
 };
-static const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12][2] = {
-    { CUBE_GREEN, CUBE_WHITE },
-    { CUBE_GREEN, CUBE_RED },
-    { CUBE_GREEN, CUBE_YELLOW },
-    { CUBE_GREEN, CUBE_ORANGE },
+static const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12 * 2] = {
+    CUBE_GREEN, CUBE_WHITE,
+    CUBE_GREEN, CUBE_RED,
+    CUBE_GREEN, CUBE_YELLOW,
+    CUBE_GREEN, CUBE_ORANGE,
 
-    { CUBE_RED, CUBE_WHITE },
-    { CUBE_YELLOW, CUBE_RED },
-    { CUBE_ORANGE, CUBE_YELLOW },
-    { CUBE_WHITE, CUBE_ORANGE },
+    CUBE_RED, CUBE_WHITE,
+    CUBE_YELLOW, CUBE_RED,
+    CUBE_ORANGE, CUBE_YELLOW,
+    CUBE_WHITE, CUBE_ORANGE,
 
-    { CUBE_BLUE, CUBE_WHITE },
-    { CUBE_BLUE, CUBE_ORANGE },
-    { CUBE_BLUE, CUBE_YELLOW },
-    { CUBE_BLUE, CUBE_RED }
+    CUBE_BLUE, CUBE_WHITE,
+    CUBE_BLUE, CUBE_ORANGE,
+    CUBE_BLUE, CUBE_YELLOW,
+    CUBE_BLUE, CUBE_RED
 };
-static const u8 CUBE_EDGE_POSITION_TABLE[12][2] = {
-    { 1, 5 }, { 3, 7 }, { 5, 1 }, { 7, 3 },
-    { 1, 3 }, { 3, 5 }, { 5, 7 }, { 7, 1 },
-    { 1, 1 }, { 3, 7 }, { 5, 5 }, { 7, 3 }
+static const u8 CUBE_EDGE_POSITION_TABLE[12 * 2] = {
+    1, 5, 3, 7, 5, 1, 7, 3,
+    1, 3, 3, 5, 5, 7, 7, 1,
+    1, 1, 3, 7, 5, 5, 7, 3
 };
-static const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8][3] = {
-    { CUBE_GREEN, CUBE_ORANGE, CUBE_WHITE },
-    { CUBE_GREEN, CUBE_WHITE, CUBE_RED },
-    { CUBE_GREEN, CUBE_RED, CUBE_YELLOW },
-    { CUBE_GREEN, CUBE_YELLOW, CUBE_ORANGE },
-    { CUBE_BLUE, CUBE_RED, CUBE_WHITE },
-    { CUBE_BLUE, CUBE_WHITE, CUBE_ORANGE },
-    { CUBE_BLUE, CUBE_ORANGE, CUBE_YELLOW },
-    { CUBE_BLUE, CUBE_YELLOW, CUBE_RED }
+static const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8 * 3] = {
+    CUBE_GREEN, CUBE_ORANGE, CUBE_WHITE,
+    CUBE_GREEN, CUBE_WHITE, CUBE_RED,
+    CUBE_GREEN, CUBE_RED, CUBE_YELLOW,
+    CUBE_GREEN, CUBE_YELLOW, CUBE_ORANGE,
+    CUBE_BLUE, CUBE_RED, CUBE_WHITE,
+    CUBE_BLUE, CUBE_WHITE, CUBE_ORANGE,
+    CUBE_BLUE, CUBE_ORANGE, CUBE_YELLOW,
+    CUBE_BLUE, CUBE_YELLOW, CUBE_RED
 };
-static const u8 CUBE_CORNER_POSITION_TABLE[8][3] = {
-    { 0, 2, 6 }, { 2, 4, 0 }, { 4, 6, 2 }, { 6, 0, 4 },
-    { 0, 2, 2 }, { 2, 0, 0 }, { 4, 6, 6 }, { 6, 4, 4 }
+static const u8 CUBE_CORNER_POSITION_TABLE[8 * 3] = {
+    0, 2, 6, 2, 4, 0, 4, 6, 2, 6, 0, 4,
+    0, 2, 2, 2, 0, 0, 4, 6, 6, 6, 4, 4
 };
 
 /*
@@ -205,7 +207,6 @@ void CubeUpdate(Cube* cube, bool* valid) {
         if (InputPressed(INPUT_SHUFFLE)) {
             // Always scramble from solved position
             CubeSetSolved(cube);
-
             CubeHandScramble(cube);
         }
 
@@ -227,7 +228,8 @@ void CubeHandScramble(Cube* cube) {
     // NOTE: To generate Rubik's cube shuffles according to official standards
     // this process would be different. Instead pieces would be randomised
     // then solver would ensure it was not too simple to get the cube back
-    // to the starting position. Scramble sequence = solve sequence
+    // to the starting position. Then the scramble sequence is the shortest
+    // solve sequence.
 
     // This scramble is just 25 random moves, ensuring the same face was not
     // turned two times in a row.
@@ -428,133 +430,142 @@ void CubeMousePaint(
     }
 }
 
-bool CubeValid(Cube* cube) {
+static int CubeParityLookup(
+    const u8* table,
+    u8* temp,
+    int* parity,
+    int length,
+    int count
+) {
+    for (int i = 0; i < length; i++) {
+        for (int j = 0; j < count; j++) {
+            bool full_match = true;
+
+            for (int k = 0; k < count; k++) {
+                u8 target = table[Index2D((k + j) % count, i, count, length)];
+                if (target != temp[k]) {
+                    full_match = false;
+                    break;
+                }
+            }
+
+            if (full_match) {
+                *parity += j;
+                return i;
+            }
+        }
+    }
+
+    // Should only occur if forgot to do basic validity checks before
+    return length;
+}
+
+static bool CubePieceParity(
+    Cube* cube,
+    const enum8(CubeColour)* colour_table,
+    const u8* position_table,
+    u8* pieces,
+    u8* temp,
+    int length,
+    int count
+) {
+    u16 seen = 0xFFFF << length;  // Any unused bits are on
+    int parity = 0;
+
+    // For every piece
+    for (int i = 0; i < length; i++) {
+        for (int j = 0; j < count; j++) {
+            CubeColour face = colour_table[Index2D(j, i, count, length)];
+            u8 tile_index = position_table[Index2D(j, i, count, length)];
+            temp[j] = FaceGetTile(cube->faces[face], tile_index);
+        }
+
+        // Invalid if piece shares multiple of same colour
+        // Invalid if piece has tiles of opposite colours
+        for (int j = 0; j < count; j++) {
+            CubeColour opposite = (temp[j] + CUBE_COLOUR_COUNT / 2) % CUBE_COLOUR_COUNT;
+            for (int k = j + 1; k < count; k++) {
+                if (temp[j] == temp[k]) return false;
+                if (opposite == temp[k]) return false;
+            }
+        }
+
+        // Look through table for match all colour combos until match
+        int match_index = CubeParityLookup(colour_table, temp, &parity, length, count);
+
+        // Previous before cube parity lookup function should mean this doesn't happen
+        assert(match_index != length);
+
+        // Set piece type seen
+        FlagToggle(seen, Bit(match_index));
+
+        // If not true then second time seeing this piece and invalid
+        if (!BitActive(seen, match_index)) return false;
+
+        // Store where current position of piece is
+        pieces[i] = match_index;
+    }
+
+    // Ensure all piece types seen
+    if (seen != 0xFFFF) return false;
+
+    // Failed parity test
+    if (parity % count != 0) return false;
+
+    return true;
+}
+
+static int CubePermutationParitySwaps(u8* pieces, int count) {
+    int swaps = 0;
+
+    for (int i = 0; i < count; i++) {
+        if (pieces[i] != i) {
+            u8 temp = pieces[i];
+            pieces[i] = pieces[temp];
+            pieces[temp] = temp;
+            swaps++;
+        }
+    }
+
+    return swaps;
+}
+
+bool CubeValid(Arena* arena_temp, Cube* cube) {
     // Store where edges are for permutation parity test later
     // Piece at target position i -> currently at position j
-    u8 edge_positions[12] = {0};
-    u8 corner_positions[8] = {0};
+    u8* edge_positions = ArenaPushArray(arena_temp, CUBE_EDGE_COUNT, u8);
+    u8* corner_positions = ArenaPushArray(arena_temp, CUBE_CORNER_COUNT, u8);
+    u8* temp = ArenaPushArray(arena_temp, MaxInt(CUBE_EDGE_COUNT, CUBE_CORNER_COUNT), u8);
 
-    // Check all edges exist
+    // 1. Check all edges exist
     // Count edge parity (+1 flipped. total % 2 == 0)
-    u16 seen = 0xF000;  // Highest bits set to true as only 12 edges
-    u8 parity = 0;
-
-    for (int i = 0; i < 12; i++) {
-        CubeColour face_a = CUBE_EDGE_COLOUR_TABLE[i][0];
-        CubeColour face_b = CUBE_EDGE_COLOUR_TABLE[i][1];
-        u8 tile_index_a = CUBE_EDGE_POSITION_TABLE[i][0];
-        u8 tile_index_b = CUBE_EDGE_POSITION_TABLE[i][1];
-
-        // Current face colours
-        CubeColour a = FaceGetTile(cube->faces[face_a], tile_index_a);
-        CubeColour b = FaceGetTile(cube->faces[face_b], tile_index_b);
-
-        // Invalid if edge tiles are same colour
-        if (a == b) return false;
-
-        // Invalid if edge tiles are opposite colours
-        CubeColour opposite_a = (a + 3) % CUBE_COLOUR_COUNT;
-        if (opposite_a == b) return false;
-
-        // Now look through all colour combos until match
-        int j = 0;
-        for (j = 0; j < 12; j++) {
-            CubeColour target_a = CUBE_EDGE_COLOUR_TABLE[j][0];
-            CubeColour target_b = CUBE_EDGE_COLOUR_TABLE[j][1];
-
-            if (target_a == a && target_b == b) {
-                // + 0, correct rotation
-                break;
-            }
-            if (target_a == b && target_b == a) {
-                // + 1, flipped rotation
-                parity++;
-                break;
-            }
-        }
-
-        // Set edge type seen
-        FlagToggle(seen, Bit(j));
-
-        // If not true then second time seeing this edge and invalid
-        if (!BitActive(seen, j)) return false;
-
-        // Store where current position of edge is
-        edge_positions[i] = j;
+    if(!CubePieceParity(
+        cube, CUBE_EDGE_COLOUR_TABLE, CUBE_EDGE_POSITION_TABLE,
+        edge_positions, temp, CUBE_EDGE_COUNT, 2
+    )) {
+        return false;
     }
 
-    // Ensure all edge types seen
-    if (seen != 0xFFFF) return false;
-
-    // Failed edge parity test
-    if (parity % 2 != 0) return false;
-
-    // Check all corners exist
+    // 2. Check all corners exist
     // Count corner parity (+1 clockwise, +2 anti-clockwise. total % 3 == 0)
-    seen = 0xFF00;
-    parity = 0;
-
-    for (int i = 0; i < 8; i++) {
-        CubeColour face_a = CUBE_CORNER_COLOUR_TABLE[i][0];
-        CubeColour face_b = CUBE_CORNER_COLOUR_TABLE[i][1];
-        CubeColour face_c = CUBE_CORNER_COLOUR_TABLE[i][2];
-        u8 tile_index_a = CUBE_CORNER_POSITION_TABLE[i][0];
-        u8 tile_index_b = CUBE_CORNER_POSITION_TABLE[i][1];
-        u8 tile_index_c = CUBE_CORNER_POSITION_TABLE[i][2];
-
-        // Current face colours
-        CubeColour a = FaceGetTile(cube->faces[face_a], tile_index_a);
-        CubeColour b = FaceGetTile(cube->faces[face_b], tile_index_b);
-        CubeColour c = FaceGetTile(cube->faces[face_c], tile_index_c);
-
-        // Invalid if corner tiles are same colour
-        if (a == b || a == c || b == c) return false;
-
-        // Invalid if corner tiles are opposite colours
-        CubeColour opposite_a = (a + 3) % CUBE_COLOUR_COUNT;
-        CubeColour opposite_b = (b + 3) % CUBE_COLOUR_COUNT;
-        if (opposite_a == b || opposite_a == c || opposite_b == c) return false;
-
-        // Now look through all colour combos until match
-        int j = 0;
-        for (j = 0; j < 8; j++) {
-            CubeColour target_a = CUBE_CORNER_COLOUR_TABLE[j][0];
-            CubeColour target_b = CUBE_CORNER_COLOUR_TABLE[j][1];
-            CubeColour target_c = CUBE_CORNER_COLOUR_TABLE[j][2];
-
-            if (target_a == a && target_b == b && target_c == c) {
-                // + 0, correct rotation
-                break;
-            }
-            if (target_a == b && target_b == c && target_c == a) {
-                // + 1, clockwise rotation
-                parity++;
-                break;
-            }
-            if (target_a == c && target_b == a && target_c == b) {
-                // + 2, anticlockwise rotation
-                parity += 2;
-                break;
-            }
-        }
-
-        // Set corner type seen
-        FlagToggle(seen, Bit(j));
-
-        // If not true then second time seeing this corner and invalid
-        if (!BitActive(seen, j)) return false;
-
-        // Store where current position of corner is
-        corner_positions[i] = j;
+    if(!CubePieceParity(
+        cube, CUBE_CORNER_COLOUR_TABLE, CUBE_CORNER_POSITION_TABLE,
+        corner_positions, temp, CUBE_CORNER_COUNT, 3
+    )) {
+        return false;
     }
 
-    // Ensure all corner types seen
-    if (seen != 0xFFFF) return false;
+    // 3. Pemutation parity
+    // Ignoring rotation, count the number of distinct swaps it would take to
+    // get each piece to the correct position. The total number of swaps should
+    // be even. Corners and edge permutation should be performed separately
+    // because a corner can never become an edge.
+    int swaps = 0;
 
-    // Failed corner parity test
-    if (parity % 3 != 0) return false;
+    swaps += CubePermutationParitySwaps(edge_positions, CUBE_EDGE_COUNT);
+    swaps += CubePermutationParitySwaps(corner_positions, CUBE_CORNER_COUNT);
 
-    // TODO: Pemutation parity
+    if (swaps % 2 != 0) return false;
 
     return true;
 }
