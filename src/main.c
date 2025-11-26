@@ -25,6 +25,7 @@ int main(void) {
     Cube cube;
     CubeInit(&arena, &cube);
     CubeColour active_colour = CUBE_GREEN;
+    bool valid = true;
 
     CubeSetSolved(&cube);
 
@@ -39,13 +40,14 @@ int main(void) {
 
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             CubeMousePaint(&cube, mouse_position, active_colour, cube_rect);
+            valid = CubeValid(&cube);
         }
 
         CubeUpdate(&cube);
 
         BeginDrawing();
             ClearBackground(GRAY);
-            CubeRender(&cube, cube_rect);
+            CubeRender(&cube, cube_rect, valid);
             DrawRectangleLinesEx(cube_rect, 2.0f, CubeFaceColour(active_colour));
         EndDrawing();
     }

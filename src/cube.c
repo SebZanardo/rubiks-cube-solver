@@ -38,42 +38,66 @@ static const u8 CUBE_FACE_TILE_INDEX_TABLE[3][3] = {
     {6, 5, 4}
 };
 static const enum8(CubeColour) CUBE_FACE_COLOUR_TABLE[3][4] = {
-    {CUBE_COLOUR_COUNT, CUBE_WHITE, CUBE_COLOUR_COUNT, CUBE_COLOUR_COUNT},
-    {CUBE_ORANGE, CUBE_GREEN, CUBE_RED, CUBE_BLUE},
-    {CUBE_COLOUR_COUNT, CUBE_YELLOW, CUBE_COLOUR_COUNT, CUBE_COLOUR_COUNT}
+    {CUBE_COLOUR_COUNT, CUBE_WHITE,     CUBE_COLOUR_COUNT,  CUBE_COLOUR_COUNT},
+    {CUBE_ORANGE,       CUBE_GREEN,     CUBE_RED,           CUBE_BLUE},
+    {CUBE_COLOUR_COUNT, CUBE_YELLOW,    CUBE_COLOUR_COUNT,  CUBE_COLOUR_COUNT}
 };
 static const u8 CUBE_FACE_ROTATION_TABLE[2][4] = {
     {0, 2, 4, 6},
     {1, 3, 5, 7}
 };
 static const enum8(CubeColour) CUBE_SIDE_COLOUR_TABLE[CUBE_COLOUR_COUNT][4] = {
-    // Green Face
-    {CUBE_ORANGE, CUBE_WHITE, CUBE_RED, CUBE_YELLOW},
-    // Red Face
-    {CUBE_GREEN, CUBE_WHITE, CUBE_BLUE, CUBE_YELLOW},
-    // White Face
-    {CUBE_ORANGE, CUBE_BLUE, CUBE_RED, CUBE_GREEN},
-    // Blue Face
-    {CUBE_ORANGE, CUBE_YELLOW, CUBE_RED, CUBE_WHITE},
-    // Orange Face
-    {CUBE_BLUE, CUBE_WHITE, CUBE_GREEN, CUBE_YELLOW},
-    // Yellow Face
-    {CUBE_ORANGE, CUBE_GREEN, CUBE_RED, CUBE_BLUE},
+    {CUBE_ORANGE, CUBE_WHITE, CUBE_RED, CUBE_YELLOW},   // Green Face
+    {CUBE_GREEN, CUBE_WHITE, CUBE_BLUE, CUBE_YELLOW},   // Red Face
+    {CUBE_ORANGE, CUBE_BLUE, CUBE_RED, CUBE_GREEN},     // White Face
+    {CUBE_ORANGE, CUBE_YELLOW, CUBE_RED, CUBE_WHITE},   // Blue Face
+    {CUBE_BLUE, CUBE_WHITE, CUBE_GREEN, CUBE_YELLOW},   // Orange Face
+    {CUBE_ORANGE, CUBE_GREEN, CUBE_RED, CUBE_BLUE}      // Yellow Face
 };
 static const u8 CUBE_SIDE_ROTATION_TABLE[CUBE_COLOUR_COUNT][3][4] = {
-    // Green Face
-    { {4, 6, 0, 2}, {3, 5, 7, 1}, {2, 4, 6, 0} },
-    // Red Face
-    { {4, 4, 0, 4}, {3, 3, 7, 3}, {2, 2, 6, 2} },
-    // White Face
-    { {2, 2, 2, 2}, {1, 1, 1, 1}, {0, 0, 0, 0} },
-    // Blue Face
-    { {0, 6, 4, 2}, {7, 5, 3, 1}, {6, 4, 2, 0} },
-    // Orange Face
-    { {4, 0, 0, 0}, {3, 6, 6, 6}, {2, 7, 7, 7} },
-    // Yellow Face
-    { {6, 6, 6, 6}, {5, 5, 5, 5}, {4, 4, 4, 4} }
+    { {4, 6, 0, 2}, {3, 5, 7, 1}, {2, 4, 6, 0} },       // Green Face
+    { {4, 4, 0, 4}, {3, 3, 7, 3}, {2, 2, 6, 2} },       // Red Face
+    { {2, 2, 2, 2}, {1, 1, 1, 1}, {0, 0, 0, 0} },       // White Face
+    { {0, 6, 4, 2}, {7, 5, 3, 1}, {6, 4, 2, 0} },       // Blue Face
+    { {4, 0, 0, 0}, {3, 7, 7, 7}, {2, 6, 6, 6} },       // Orange Face
+    { {6, 6, 6, 6}, {5, 5, 5, 5}, {4, 4, 4, 4} }        // Yellow Face
 };
+static const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12][2] = {
+    { CUBE_GREEN, CUBE_WHITE },
+    { CUBE_GREEN, CUBE_RED },
+    { CUBE_GREEN, CUBE_YELLOW },
+    { CUBE_GREEN, CUBE_ORANGE },
+
+    { CUBE_RED, CUBE_WHITE },
+    { CUBE_YELLOW, CUBE_RED },
+    { CUBE_ORANGE, CUBE_YELLOW },
+    { CUBE_WHITE, CUBE_ORANGE },
+
+    { CUBE_BLUE, CUBE_WHITE },
+    { CUBE_BLUE, CUBE_ORANGE },
+    { CUBE_BLUE, CUBE_YELLOW },
+    { CUBE_BLUE, CUBE_RED }
+};
+static const u8 CUBE_EDGE_POSITION_TABLE[12][2] = {
+    { 1, 5 }, { 3, 7 }, { 5, 1 }, { 7, 3 },
+    { 1, 3 }, { 3, 5 }, { 5, 7 }, { 7, 1 },
+    { 1, 1 }, { 3, 7 }, { 5, 5 }, { 7, 3 }
+};
+static const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8][3] = {
+    { CUBE_GREEN, CUBE_ORANGE, CUBE_WHITE },
+    { CUBE_GREEN, CUBE_WHITE, CUBE_RED },
+    { CUBE_GREEN, CUBE_RED, CUBE_YELLOW },
+    { CUBE_GREEN, CUBE_YELLOW, CUBE_ORANGE },
+    { CUBE_BLUE, CUBE_RED, CUBE_WHITE },
+    { CUBE_BLUE, CUBE_WHITE, CUBE_ORANGE },
+    { CUBE_BLUE, CUBE_ORANGE, CUBE_YELLOW },
+    { CUBE_BLUE, CUBE_YELLOW, CUBE_RED }
+};
+static const u8 CUBE_CORNER_POSITION_TABLE[8][3] = {
+    { 0, 2, 6 }, { 2, 4, 0 }, { 4, 6, 2 }, { 6, 0, 4 },
+    { 0, 2, 2 }, { 2, 0, 0 }, { 4, 6, 6 }, { 6, 4, 4 }
+};
+
 /*
 static const char CUBE_COLOUR_CHARS[CUBE_COLOUR_COUNT] = "GRWBOY";
 static char *CUBE_COLOUR_NAMES[CUBE_COLOUR_COUNT] = {
@@ -86,15 +110,15 @@ static const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT] = {
 };
 */
 
-
-static void TileRender(Rectangle rec, enum8(CubeColour) colour) {
+static void TileRender(Rectangle rec, enum8(CubeColour) colour, bool valid) {
     DrawRectangleRounded(
         rec, TILE_RENDER_ROUNDNESS, TILE_RENDER_SEGMENTS,
         CUBE_COLOUR_TABLE[colour]
     );
+    Color outline_colour = valid ? BLACK : MAGENTA;
     DrawRectangleRoundedLinesEx(
         rec, TILE_RENDER_ROUNDNESS, TILE_RENDER_SEGMENTS,
-        rec.width * TILE_RENDER_THICKNESS, BLACK
+        rec.width * TILE_RENDER_THICKNESS, outline_colour
     );
 }
 
@@ -123,7 +147,9 @@ enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position) 
     return old_colour;
 }
 
-static void FaceRender(Cube* cube, enum8(CubeColour) face_colour, int x, int y, int size) {
+static void FaceRender(
+    Cube* cube, enum8(CubeColour) face_colour, int x, int y, int size, bool valid
+) {
     u32 face = cube->faces[face_colour];
     int spacing = size * (1 + TILE_RENDER_SPACING);
     Rectangle tile_rect = (Rectangle) { x, y, size, size };
@@ -134,10 +160,10 @@ static void FaceRender(Cube* cube, enum8(CubeColour) face_colour, int x, int y, 
             u8 tile_index = CUBE_FACE_TILE_INDEX_TABLE[y][x];
 
             if (tile_index < FACE_TILE_COUNT) {
-                TileRender(tile_rect, FaceGetTile(face, tile_index));
+                TileRender(tile_rect, FaceGetTile(face, tile_index), valid);
             } else {
                 // Centre tile is fixed colour
-                TileRender(tile_rect, face_colour);
+                TileRender(tile_rect, face_colour, valid);
             }
             tile_rect.x += spacing;
         }
@@ -279,7 +305,7 @@ void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour) {
     }
 }
 
-void CubeRender(Cube* cube, Rectangle cube_rect) {
+void CubeRender(Cube* cube, Rectangle cube_rect, bool valid) {
     int size = MinFloat(
         cube_rect.width / CUBE_RENDER_WIDTH,
         cube_rect.height / CUBE_RENDER_HEIGHT
@@ -298,7 +324,7 @@ void CubeRender(Cube* cube, Rectangle cube_rect) {
         for (int x = 0; x < 4; x++) {
             CubeColour face_colour = CUBE_FACE_COLOUR_TABLE[y][x];
             if (face_colour < CUBE_COLOUR_COUNT) {
-                FaceRender(cube, face_colour, position.x, position.y, size);
+                FaceRender(cube, face_colour, position.x, position.y, size, valid);
             }
             position.x += size * FACE_RENDER_SPACING;
         }
@@ -347,4 +373,136 @@ void CubeMousePaint(
             FaceSetTile(&cube->faces[face_colour], colour, tile_index);
         }
     }
+}
+
+bool CubeValid(Cube* cube) {
+    // Store where edges are for permutation parity test later
+    // Piece at target position i -> currently at position j
+    u8 edge_positions[12] = {0};
+    u8 corner_positions[8] = {0};
+
+    // Check all edges exist
+    // Count edge parity (+1 flipped. total % 2 == 0)
+    u16 seen = 0xF000;  // Highest bits set to true as only 12 edges
+    u8 parity = 0;
+
+    for (int i = 0; i < 12; i++) {
+        CubeColour face_a = CUBE_EDGE_COLOUR_TABLE[i][0];
+        CubeColour face_b = CUBE_EDGE_COLOUR_TABLE[i][1];
+        u8 tile_index_a = CUBE_EDGE_POSITION_TABLE[i][0];
+        u8 tile_index_b = CUBE_EDGE_POSITION_TABLE[i][1];
+
+        // Current face colours
+        CubeColour a = FaceGetTile(cube->faces[face_a], tile_index_a);
+        CubeColour b = FaceGetTile(cube->faces[face_b], tile_index_b);
+
+        // Invalid if edge tiles are same colour
+        if (a == b) return false;
+
+        // Invalid if edge tiles are opposite colours
+        CubeColour opposite_a = (a + 3) % CUBE_COLOUR_COUNT;
+        if (opposite_a == b) return false;
+
+        // Now look through all colour combos until match
+        int j = 0;
+        for (j = 0; j < 12; j++) {
+            CubeColour target_a = CUBE_EDGE_COLOUR_TABLE[j][0];
+            CubeColour target_b = CUBE_EDGE_COLOUR_TABLE[j][1];
+
+            if (target_a == a && target_b == b) {
+                // + 0, correct rotation
+                break;
+            }
+            if (target_a == b && target_b == a) {
+                // + 1, flipped rotation
+                parity++;
+                break;
+            }
+        }
+
+        // Set edge type seen
+        FlagToggle(seen, Bit(j));
+
+        // If not true then second time seeing this edge and invalid
+        if (!BitActive(seen, j)) return false;
+
+        // Store where current position of edge is
+        edge_positions[i] = j;
+    }
+
+    // Ensure all edge types seen
+    if (seen != 0xFFFF) return false;
+
+    // Failed edge parity test
+    if (parity % 2 != 0) return false;
+
+
+    // Check all corners exist
+    // Count corner parity (+1 clockwise, +2 anti-clockwise. total % 3 == 0)
+    seen = 0xFF00;
+    parity = 0;
+
+    for (int i = 0; i < 8; i++) {
+        CubeColour face_a = CUBE_CORNER_COLOUR_TABLE[i][0];
+        CubeColour face_b = CUBE_CORNER_COLOUR_TABLE[i][1];
+        CubeColour face_c = CUBE_CORNER_COLOUR_TABLE[i][2];
+        u8 tile_index_a = CUBE_CORNER_POSITION_TABLE[i][0];
+        u8 tile_index_b = CUBE_CORNER_POSITION_TABLE[i][1];
+        u8 tile_index_c = CUBE_CORNER_POSITION_TABLE[i][2];
+
+        // Current face colours
+        CubeColour a = FaceGetTile(cube->faces[face_a], tile_index_a);
+        CubeColour b = FaceGetTile(cube->faces[face_b], tile_index_b);
+        CubeColour c = FaceGetTile(cube->faces[face_c], tile_index_c);
+
+        // Invalid if corner tiles are same colour
+        if (a == b || a == c || b == c) return false;
+
+        // Invalid if corner tiles are opposite colours
+        CubeColour opposite_a = (a + 3) % CUBE_COLOUR_COUNT;
+        CubeColour opposite_b = (b + 3) % CUBE_COLOUR_COUNT;
+        if (opposite_a == b || opposite_a == c || opposite_b == c) return false;
+
+        // Now look through all colour combos until match
+        int j = 0;
+        for (j = 0; j < 8; j++) {
+            CubeColour target_a = CUBE_CORNER_COLOUR_TABLE[j][0];
+            CubeColour target_b = CUBE_CORNER_COLOUR_TABLE[j][1];
+            CubeColour target_c = CUBE_CORNER_COLOUR_TABLE[j][2];
+
+            if (target_a == a && target_b == b && target_c == c) {
+                // + 0, correct rotation
+                break;
+            }
+            if (target_a == b && target_b == c && target_c == a) {
+                // + 1, clockwise rotation
+                parity++;
+                break;
+            }
+            if (target_a == c && target_b == a && target_c == b) {
+                // + 2, anticlockwise rotation
+                parity += 2;
+                break;
+            }
+        }
+
+        // Set corner type seen
+        FlagToggle(seen, Bit(j));
+
+        // If not true then second time seeing this corner and invalid
+        if (!BitActive(seen, j)) return false;
+
+        // Store where current position of corner is
+        corner_positions[i] = j;
+    }
+
+    // Ensure all corner types seen
+    if (seen != 0xFFFF) return false;
+
+    // Failed corner parity test
+    if (parity % 3 != 0) return false;
+
+    // TODO: Pemutation parity
+
+    return true;
 }
