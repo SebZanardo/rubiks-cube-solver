@@ -8,6 +8,7 @@ static const int WINDOW_HEIGHT = 720;
 static const char WINDOW_CAPTION[] = "rubiks cube solver";
 static const int WINDOW_FPS = 60;
 
+
 int main(void) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 
@@ -30,7 +31,9 @@ int main(void) {
     CubeSetSolved(&cube);
 
     while (!WindowShouldClose()) {
-        Rectangle cube_rect = (Rectangle) { 0, 0, GetScreenWidth(), GetScreenHeight() };
+        Rectangle cube_rect = (Rectangle) {
+            0, 0, GetScreenWidth(), GetScreenHeight()
+        };
 
         Vector2 mouse_position = GetMousePosition();
         int key = GetKeyPressed();
@@ -43,7 +46,7 @@ int main(void) {
             valid = CubeValid(&cube);
         }
 
-        CubeUpdate(&cube);
+        CubeUpdate(&cube, &valid);
 
         BeginDrawing();
             ClearBackground(GRAY);

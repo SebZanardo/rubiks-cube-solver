@@ -17,10 +17,14 @@ static const float FACE_RENDER_OFFSET = FACE_RENDER_SPACING + TILE_RENDER_SPACIN
 static const float CUBE_RENDER_WIDTH = 15 + (TILE_RENDER_SPACING * 10);
 static const float CUBE_RENDER_HEIGHT = 11 + (TILE_RENDER_SPACING * 8);
 
-/*
-static const int GODS_NUMBER = 20;  // Maximum number of turns to solve any 3x3
-static const int GODS_NUMBER_QUARTER = 26;
-*/
+
+static const int SHUFFLE_LENGTH = 25;
+
+// TODO: Toggle quarter turn only with keybind
+static const bool QUARTER_TURN_ONLY = false;
+
+static const int TURN_DIRECTIONS = QUARTER_TURN_ONLY ? 2 : 3;
+/*static const int GODS_NUMBER = QUARTER_TURN_ONLY ? 26 : 20;*/
 
 
 // Lookup tables
@@ -175,25 +179,39 @@ void CubeInit(Arena* arena, Cube* cube) {
     cube->faces = ArenaPushArray(arena, CUBE_FACE_COUNT, u32);
 }
 
-void CubeUpdate(Cube* cube) {
-    for (u8 i = 0; i < CUBE_COLOUR_COUNT; i++) {
-        if (InputPressed(i)) {
-            if (InputDown(INPUT_PRIME)) {
-                CubeFaceTurnAntiClockwise(cube, i);
-            } else if (InputDown(INPUT_DOUBLE)) {
-                CubeFaceTurnDouble(cube, i);
-            } else {
-                CubeFaceTurnClockwise(cube, i);
+void CubeUpdate(Cube* cube, bool* valid) {
+    if (InputPressed(INPUT_RESET)) {
+        CubeSetSolved(cube);
+        *valid = true;
+    }
+
+    if (*valid) {
+        for (u8 i = 0; i < CUBE_COLOUR_COUNT; i++) {
+            if (InputPressed(i)) {
+                if (InputDown(INPUT_PRIME)) {
+                    CubeFaceTurnAntiClockwise(cube, i);
+                } else if (InputDown(INPUT_DOUBLE)) {
+                    if (QUARTER_TURN_ONLY) {
+                        printf("Quarter turn only is set to true!\n");
+                    } else {
+                        CubeFaceTurnDouble(cube, i);
+                    }
+                } else {
+                    CubeFaceTurnClockwise(cube, i);
+                }
             }
         }
-    }
 
-    if (InputPressed(INPUT_SHUFFLE)) {
-        printf("Random shuffle!\n");
-    }
+        if (InputPressed(INPUT_SHUFFLE)) {
+            // Always scramble from solved position
+            CubeSetSolved(cube);
 
-    if (InputPressed(INPUT_SOLVE)) {
-        printf("Solve!\n");
+            CubeHandScramble(cube);
+        }
+
+        if (InputPressed(INPUT_SOLVE)) {
+            printf("Solve functionality not yet implemented...\n");
+        }
     }
 }
 
@@ -202,6 +220,41 @@ void CubeSetSolved(Cube* cube) {
         for (u8 position = 0; position < FACE_TILE_COUNT; position++) {
             FaceSetTile(&cube->faces[colour], colour, position);
         }
+    }
+}
+
+void CubeHandScramble(Cube* cube) {
+    // NOTE: To generate Rubik's cube shuffles according to official standards
+    // this process would be different. Instead pieces would be randomised
+    // then solver would ensure it was not too simple to get the cube back
+    // to the starting position. Scramble sequence = solve sequence
+
+    // This scramble is just 25 random moves, ensuring the same face was not
+    // turned two times in a row.
+
+    u8 last_turn_face = GetRandomValue(0, CUBE_FACE_COUNT - 1);
+
+    for (int i = 0; i < SHUFFLE_LENGTH; i++) {
+        // -2 because if >= last_turn_face then increment by one
+        u8 turn_face = GetRandomValue(0, CUBE_FACE_COUNT - 2);
+        u8 turn_direction = GetRandomValue(0, TURN_DIRECTIONS - 1);
+
+        // Fair logic to ensure not repeatedly turning same face
+        if (turn_face >= last_turn_face) {
+            turn_face++;
+        }
+
+        // Perform turn
+        if (turn_direction == 0) {
+            CubeFaceTurnClockwise(cube, turn_face);
+        } else if (turn_direction == 1) {
+            CubeFaceTurnAntiClockwise(cube, turn_face);
+        } else {
+            CubeFaceTurnDouble(cube, turn_face);
+        }
+
+        // Store last turned face
+        last_turn_face = turn_face;
     }
 }
 
@@ -435,7 +488,6 @@ bool CubeValid(Cube* cube) {
 
     // Failed edge parity test
     if (parity % 2 != 0) return false;
-
 
     // Check all corners exist
     // Count corner parity (+1 clockwise, +2 anti-clockwise. total % 3 == 0)

@@ -13,6 +13,7 @@ static const KeyboardKey input_keymap_table[INPUT_ACTION_COUNT] = {
     KEY_LEFT_CONTROL,
 
     KEY_S,
+    KEY_W,
     KEY_SPACE
 };
 

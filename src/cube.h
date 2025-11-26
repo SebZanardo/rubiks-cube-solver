@@ -92,8 +92,9 @@ enum8(CubeColour) FaceGetTile(u32 face, u8 position);
 enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position);
 
 void CubeInit(Arena* arena, Cube* cube);
-void CubeUpdate(Cube* cube);
+void CubeUpdate(Cube* cube, bool* valid);
 void CubeSetSolved(Cube* cube);
+void CubeHandScramble(Cube* cube);
 void CubeFaceTurnClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnAntiClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour);

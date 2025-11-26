@@ -18,6 +18,7 @@ typedef enum {
     INPUT_DOUBLE,
 
     INPUT_SHUFFLE,
+    INPUT_RESET,
     INPUT_SOLVE,
 
     INPUT_ACTION_COUNT
