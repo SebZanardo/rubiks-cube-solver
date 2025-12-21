@@ -10,6 +10,7 @@ src/core.c
 src/cube.c
 src/input.c
 src/main.c
+src/solve.c
 EOF
 )
 

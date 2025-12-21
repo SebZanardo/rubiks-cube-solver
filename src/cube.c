@@ -6,9 +6,10 @@ static const int CUBE_EDGE_COUNT = 12;
 static const int CUBE_CORNER_COUNT = 8;
 static const int FACE_TILE_COUNT = 8;
 static const int SIDE_TURN_COUNT = 4;
+
 static const u8 BITMASK_TILE = 0xFu;  // Four bits set to true, 1111
 
-static const float TILE_RENDER_SPACING = 0.25f;
+static const float TILE_RENDER_SPACING = 0.3f;
 static const float TILE_RENDER_ROUNDNESS = 0.3f;
 static const int TILE_RENDER_SEGMENTS = 4;
 static const float TILE_RENDER_THICKNESS = 0.075f;
@@ -19,14 +20,8 @@ static const float FACE_RENDER_OFFSET = FACE_RENDER_SPACING + TILE_RENDER_SPACIN
 static const float CUBE_RENDER_WIDTH = 15 + (TILE_RENDER_SPACING * 10);
 static const float CUBE_RENDER_HEIGHT = 11 + (TILE_RENDER_SPACING * 8);
 
-
 static const int SHUFFLE_LENGTH = 25;
-
-// TODO: Toggle quarter turn only with keybind
-static const bool QUARTER_TURN_ONLY = false;
-
-static const int TURN_DIRECTIONS = QUARTER_TURN_ONLY ? 2 : 3;
-/*static const int GODS_NUMBER = QUARTER_TURN_ONLY ? 26 : 20;*/
+static const int TURN_DIRECTIONS = 3;
 
 
 // Lookup tables
@@ -116,18 +111,6 @@ static const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT] = {
 };
 */
 
-static void TileRender(Rectangle rec, enum8(CubeColour) colour, bool valid) {
-    DrawRectangleRounded(
-        rec, TILE_RENDER_ROUNDNESS, TILE_RENDER_SEGMENTS,
-        CUBE_COLOUR_TABLE[colour]
-    );
-    Color outline_colour = valid ? BLACK : MAGENTA;
-    DrawRectangleRoundedLinesEx(
-        rec, TILE_RENDER_ROUNDNESS, TILE_RENDER_SEGMENTS,
-        rec.width * TILE_RENDER_THICKNESS, outline_colour
-    );
-}
-
 enum8(CubeColour) FaceGetTile(u32 face, u8 position) {
     assert(position < FACE_TILE_COUNT);
 
@@ -153,67 +136,8 @@ enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position) 
     return old_colour;
 }
 
-static void FaceRender(
-    Cube* cube, enum8(CubeColour) face_colour, int x, int y, int size, bool valid
-) {
-    u32 face = cube->faces[face_colour];
-    int spacing = size * (1 + TILE_RENDER_SPACING);
-    Rectangle tile_rect = (Rectangle) { x, y, size, size };
-
-    for (int y = 0; y < 3; y++) {
-        tile_rect.x = x;
-        for (int x = 0; x < 3; x++) {
-            u8 tile_index = CUBE_FACE_TILE_INDEX_TABLE[y][x];
-
-            if (tile_index < FACE_TILE_COUNT) {
-                TileRender(tile_rect, FaceGetTile(face, tile_index), valid);
-            } else {
-                // Centre tile is fixed colour
-                TileRender(tile_rect, face_colour, valid);
-            }
-            tile_rect.x += spacing;
-        }
-        tile_rect.y += spacing;
-    }
-}
-
 void CubeInit(Arena* arena, Cube* cube) {
     cube->faces = ArenaPushArray(arena, CUBE_FACE_COUNT, u32);
-}
-
-void CubeUpdate(Cube* cube, bool* valid) {
-    if (InputPressed(INPUT_RESET)) {
-        CubeSetSolved(cube);
-        *valid = true;
-    }
-
-    if (*valid) {
-        for (u8 i = 0; i < CUBE_COLOUR_COUNT; i++) {
-            if (InputPressed(i)) {
-                if (InputDown(INPUT_PRIME)) {
-                    CubeFaceTurnAntiClockwise(cube, i);
-                } else if (InputDown(INPUT_DOUBLE)) {
-                    if (QUARTER_TURN_ONLY) {
-                        printf("Quarter turn only is set to true!\n");
-                    } else {
-                        CubeFaceTurnDouble(cube, i);
-                    }
-                } else {
-                    CubeFaceTurnClockwise(cube, i);
-                }
-            }
-        }
-
-        if (InputPressed(INPUT_SHUFFLE)) {
-            // Always scramble from solved position
-            CubeSetSolved(cube);
-            CubeHandScramble(cube);
-        }
-
-        if (InputPressed(INPUT_SOLVE)) {
-            printf("Solve functionality not yet implemented...\n");
-        }
-    }
 }
 
 void CubeSetSolved(Cube* cube) {
@@ -357,33 +281,6 @@ void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour) {
             temp = FaceSetTile(&cube->faces[b_colour], temp, b);
             FaceSetTile(&cube->faces[a_colour], temp, a);
         }
-    }
-}
-
-void CubeRender(Cube* cube, Rectangle cube_rect, bool valid) {
-    int size = MinFloat(
-        cube_rect.width / CUBE_RENDER_WIDTH,
-        cube_rect.height / CUBE_RENDER_HEIGHT
-    );
-    IntVector2 offset = (IntVector2) {
-        (cube_rect.width - CUBE_RENDER_WIDTH * size) / 2,
-        (cube_rect.height - CUBE_RENDER_HEIGHT * size) / 2
-    };
-    IntVector2 position = (IntVector2) {
-        cube_rect.x + offset.x + size * FACE_RENDER_OFFSET,
-        cube_rect.y + offset.y + size * TILE_RENDER_SPACING
-    };
-
-    for (int y = 0; y < 3; y++) {
-        position.x = cube_rect.x + offset.x + size * TILE_RENDER_SPACING;
-        for (int x = 0; x < 4; x++) {
-            CubeColour face_colour = CUBE_FACE_COLOUR_TABLE[y][x];
-            if (face_colour < CUBE_COLOUR_COUNT) {
-                FaceRender(cube, face_colour, position.x, position.y, size, valid);
-            }
-            position.x += size * FACE_RENDER_SPACING;
-        }
-        position.y += size * FACE_RENDER_SPACING;
     }
 }
 
@@ -569,3 +466,67 @@ bool CubeValid(Arena* arena_temp, Cube* cube) {
 
     return true;
 }
+
+static void TileRender(Rectangle rec, enum8(CubeColour) colour, bool valid) {
+    DrawRectangleRounded(
+        rec, TILE_RENDER_ROUNDNESS, TILE_RENDER_SEGMENTS,
+        CUBE_COLOUR_TABLE[colour]
+    );
+    Color outline_colour = valid ? BLACK : MAGENTA;
+    DrawRectangleRoundedLinesEx(
+        rec, TILE_RENDER_ROUNDNESS, TILE_RENDER_SEGMENTS,
+        rec.width * TILE_RENDER_THICKNESS, outline_colour
+    );
+}
+
+static void FaceRender(
+    Cube* cube, enum8(CubeColour) face_colour, int x, int y, int size, bool valid
+) {
+    u32 face = cube->faces[face_colour];
+    int spacing = size * (1 + TILE_RENDER_SPACING);
+    Rectangle tile_rect = (Rectangle) { x, y, size, size };
+
+    for (int y = 0; y < 3; y++) {
+        tile_rect.x = x;
+        for (int x = 0; x < 3; x++) {
+            u8 tile_index = CUBE_FACE_TILE_INDEX_TABLE[y][x];
+
+            if (tile_index < FACE_TILE_COUNT) {
+                TileRender(tile_rect, FaceGetTile(face, tile_index), valid);
+            } else {
+                // Centre tile is fixed colour
+                TileRender(tile_rect, face_colour, valid);
+            }
+            tile_rect.x += spacing;
+        }
+        tile_rect.y += spacing;
+    }
+}
+
+void CubeRender(Cube* cube, Rectangle cube_rect, bool valid) {
+    int size = MinFloat(
+        cube_rect.width / CUBE_RENDER_WIDTH,
+        cube_rect.height / CUBE_RENDER_HEIGHT
+    );
+    IntVector2 offset = (IntVector2) {
+        (cube_rect.width - CUBE_RENDER_WIDTH * size) / 2,
+        (cube_rect.height - CUBE_RENDER_HEIGHT * size) / 2
+    };
+    IntVector2 position = (IntVector2) {
+        cube_rect.x + offset.x + size * FACE_RENDER_OFFSET,
+        cube_rect.y + offset.y + size * TILE_RENDER_SPACING
+    };
+
+    for (int y = 0; y < 3; y++) {
+        position.x = cube_rect.x + offset.x + size * TILE_RENDER_SPACING;
+        for (int x = 0; x < 4; x++) {
+            CubeColour face_colour = CUBE_FACE_COLOUR_TABLE[y][x];
+            if (face_colour < CUBE_COLOUR_COUNT) {
+                FaceRender(cube, face_colour, position.x, position.y, size, valid);
+            }
+            position.x += size * FACE_RENDER_SPACING;
+        }
+        position.y += size * FACE_RENDER_SPACING;
+    }
+}
+

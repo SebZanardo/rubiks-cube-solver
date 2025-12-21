@@ -1,5 +1,7 @@
 #include "core.h"
 #include "cube.h"
+#include "input.h"
+#include "solve.h"
 #include "raylib.h"
 
 
@@ -20,18 +22,21 @@ int main(void) {
     Image icon = LoadImage("src/data/textures/icon.png");
     SetWindowIcon(icon);
 
-    // Main arena should have lots of space as we need to do large DFS search
-    // for solving algorithm
     Arena arena;
-    ArenaInit(&arena, Gigabytes(1));
+    ArenaInit(&arena, Kilobytes(1));
 
     Arena arena_temp;
-    ArenaInit(&arena_temp, Kilobytes(4));
+    ArenaInit(&arena_temp, Kilobytes(1));
 
+    Arena arena_solve;
+    ArenaInit(&arena_solve, Kilobytes(1));
+
+    // Only one cube for now
     Cube cube;
     CubeInit(&arena, &cube);
-    CubeColour active_colour = CUBE_GREEN;
     bool valid = true;
+
+    CubeColour active_colour = CUBE_GREEN;
 
     CubeSetSolved(&cube);
 
@@ -41,11 +46,13 @@ int main(void) {
         };
 
         Vector2 mouse_position = GetMousePosition();
+
         int key = GetKeyPressed();
         if (key >= KEY_ONE && key <= KEY_SIX) {
             active_colour = key - KEY_ONE;
         }
 
+        // UPDATE
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             CubeMousePaint(&cube, mouse_position, active_colour, cube_rect);
 
@@ -53,8 +60,36 @@ int main(void) {
             ArenaReset(&arena_temp);
         }
 
-        CubeUpdate(&cube, &valid);
+        if (InputPressed(INPUT_RESET)) {
+            CubeSetSolved(&cube);
+            valid = true;
+        }
 
+        if (valid) {
+            for (u8 i = 0; i < CUBE_COLOUR_COUNT; i++) {
+                if (InputPressed(i)) {
+                    if (InputDown(INPUT_PRIME)) {
+                        CubeFaceTurnAntiClockwise(&cube, i);
+                    } else if (InputDown(INPUT_DOUBLE)) {
+                        CubeFaceTurnDouble(&cube, i);
+                    } else {
+                        CubeFaceTurnClockwise(&cube, i);
+                    }
+                }
+            }
+
+            if (InputPressed(INPUT_SHUFFLE)) {
+                // Always scramble from solved position
+                CubeSetSolved(&cube);
+                CubeHandScramble(&cube);
+            }
+        }
+
+        if (valid && InputPressed(INPUT_SOLVE)) {
+            SolveCube(&arena_solve, &cube);
+        }
+
+        // RENDER
         BeginDrawing();
             ClearBackground(GRAY);
             CubeRender(&cube, cube_rect, valid);

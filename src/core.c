@@ -60,7 +60,6 @@ void ArenaReset(Arena* arena) {
     arena->used = 0;
 }
 
-
 void* MemCopy(void* dest, void* src, u64 size) {
     u8* d = (u8*) dest;
     const u8* s = (const u8*) src;
@@ -97,7 +96,6 @@ i32 MemCmp(void* a, void* b, u64 count) {
 
     return 0;
 }
-
 
 u8  MinU8 (u8  a, u8  b) { return _Min(a, b); }
 u16 MinU16(u16 a, u16 b) { return _Min(a, b); }

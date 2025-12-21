@@ -3,7 +3,6 @@
 
 
 #include "core.h"
-#include "input.h"
 #include "raylib.h"
 
 
@@ -52,6 +51,7 @@ typedef enum {
 // (4bits) *        (8)        =   (32bits)
 //
 // To simplify rotations, tile winding order within u32 face is:
+//
 //  0 1 2
 //  7   3
 //  6 5 4
@@ -88,20 +88,16 @@ typedef struct {
 } Cube;
 
 
-enum8(CubeColour) FaceGetTile(u32 face, u8 position);
-enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position);
-
 void CubeInit(Arena* arena, Cube* cube);
-void CubeUpdate(Cube* cube, bool* valid);
 void CubeSetSolved(Cube* cube);
 void CubeHandScramble(Cube* cube);
 void CubeFaceTurnClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnAntiClockwise(Cube* cube, enum8(CubeColour) face_colour);
 void CubeFaceTurnDouble(Cube* cube, enum8(CubeColour) face_colour);
-void CubeRender(Cube* cube, Rectangle cube_rect, bool valid);
 Color CubeFaceColour(enum8(CubeColour) colour);
 void CubeMousePaint(Cube* cube, Vector2 mouse_position, CubeColour colour, Rectangle cube_rect);
 bool CubeValid(Arena* arena_temp, Cube* cube);
+void CubeRender(Cube* cube, Rectangle cube_rect, bool valid);
 
 
 #endif  /* CUBE_H */

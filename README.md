@@ -1,14 +1,11 @@
 # rubiks-cube-solver
 
-__TODO:__  
-* Human solve
-* Optimal solve
-
 __FEATURES:__  
 * Visual representation of cube
 * Rotation for clockwise, anticlockwise and double turns
 * Painting tile colours to setup scrambled cube positions
 * Validation for any cube position. Uses edge and corner parity tests as well as permutation parity test
+* TODO: Solving algorithm (CFOP)
 
 __CONTROLS:__  
 * `1-6` Change active paint colour
