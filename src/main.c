@@ -29,16 +29,18 @@ int main(void) {
     ArenaInit(&arena_temp, Kilobytes(1));
 
     Arena arena_solve;
-    ArenaInit(&arena_solve, Kilobytes(1));
+    ArenaInit(&arena_solve, Kilobytes(4));
 
     // Only one cube for now
     Cube cube;
     CubeInit(&arena, &cube);
-    bool valid = true;
 
     CubeColour active_colour = CUBE_GREEN;
 
     CubeSetSolved(&cube);
+
+    bool valid = CubeValid(&arena_temp, &cube);
+    ArenaReset(&arena_temp);
 
     while (!WindowShouldClose()) {
         Rectangle cube_rect = (Rectangle) {

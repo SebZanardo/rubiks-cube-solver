@@ -100,4 +100,48 @@ int ModWrap(int x, int n);
 int Index2D(int x, int y, int width, int height);
 
 
+#define DEFINE_TYPED_STACK(type, name)                                         \
+    typedef struct {                                                           \
+        type *items;                                                           \
+        u32 head;                                                              \
+        u32 capacity;                                                          \
+    } name;                                                                    \
+                                                                               \
+    static inline void name##_init(name *stack, type* items, u32 capacity);    \
+    static inline bool name##_append(name *stack, type item);                  \
+    static inline bool name##_pop(name *stack, type *item);                    \
+    static inline u32 name##_length(name *stack);                              \
+    static inline void name##_clear(name *stack);                              \
+                                                                               \
+    static inline void name##_init(name *stack, type* items, u32 capacity) {   \
+        stack->items = items;                                                  \
+        stack->capacity = capacity;                                            \
+        name##_clear(stack);                                                   \
+    }                                                                          \
+                                                                               \
+    static inline bool name##_append(name *stack, type item) {                 \
+        if (stack->head >= stack->capacity) return false;                      \
+                                                                               \
+        stack->items[stack->head++] = item;                                    \
+                                                                               \
+        return true;                                                           \
+    }                                                                          \
+                                                                               \
+    static inline bool name##_pop(name *stack, type *item) {                   \
+        if (stack->head == 0) return false;                                    \
+                                                                               \
+        *item = stack->items[stack->head--];                                   \
+                                                                               \
+        return true;                                                           \
+    }                                                                          \
+                                                                               \
+    static inline u32 name##_length(name *stack) {                             \
+        return stack->head;                                                    \
+    }                                                                          \
+                                                                               \
+    static inline void name##_clear(name *stack) {                             \
+        stack->head = 0;                                                       \
+    }                                                                          \
+
+
 #endif  /* CORE_H */

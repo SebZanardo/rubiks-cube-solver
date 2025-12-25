@@ -104,11 +104,6 @@ static const char CUBE_COLOUR_CHARS[CUBE_COLOUR_COUNT] = "GRWBOY";
 static char *CUBE_COLOUR_NAMES[CUBE_COLOUR_COUNT] = {
     "GREEN", "RED", "WHITE", "BLUE", "ORANGE", "YELLOW"
 };
-static const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT] = {
-    "F",  "R",  "U",  "B",  "L",  "D",
-    "F'", "R'", "U'", "B'", "L'", "D'",
-    "F2", "R2", "U2", "B2", "L2", "D2"
-};
 */
 
 enum8(CubeColour) FaceGetTile(u32 face, u8 position) {
@@ -181,6 +176,16 @@ void CubeHandScramble(Cube* cube) {
 
         // Store last turned face
         last_turn_face = turn_face;
+    }
+}
+
+void CubeTurn(Cube* cube, TurnType turn) {
+    if (turn < 6) {
+        CubeFaceTurnClockwise(cube, turn);
+    } else if (turn < 12) {
+        CubeFaceTurnAntiClockwise(cube, turn - TURN_FRONT_PRIME);
+    } else {
+        CubeFaceTurnDouble(cube, turn - TURN_FRONT_DOUBLE);
     }
 }
 
@@ -321,7 +326,7 @@ void CubeMousePaint(
     ) {
         CubeColour face_colour = CUBE_FACE_COLOUR_TABLE[face_position.y][face_position.x];
         u8 tile_index = CUBE_FACE_TILE_INDEX_TABLE[tile_position.y][tile_position.x];
-        if (tile_index < FACE_TILE_COUNT) {
+        if (face_colour < CUBE_COLOUR_COUNT && tile_index < FACE_TILE_COUNT) {
             FaceSetTile(&cube->faces[face_colour], colour, tile_index);
         }
     }
@@ -413,14 +418,17 @@ static bool CubePieceParity(
 }
 
 static int CubePermutationParitySwaps(u8* pieces, int count) {
+    u16 seen = 0xFFFF << count;
     int swaps = 0;
 
     for (int i = 0; i < count; i++) {
-        if (pieces[i] != i) {
+        while (pieces[i] != i) {
+            if (BitActive(seen, i)) { return -1; }
             u8 temp = pieces[i];
             pieces[i] = pieces[temp];
             pieces[temp] = temp;
             swaps++;
+            FlagSet(seen, Bit(temp));
         }
     }
 
@@ -459,8 +467,14 @@ bool CubeValid(Arena* arena_temp, Cube* cube) {
     // because a corner can never become an edge.
     int swaps = 0;
 
-    swaps += CubePermutationParitySwaps(edge_positions, CUBE_EDGE_COUNT);
-    swaps += CubePermutationParitySwaps(corner_positions, CUBE_CORNER_COUNT);
+    int edge_swaps = CubePermutationParitySwaps(edge_positions, CUBE_EDGE_COUNT);
+    if (edge_swaps < 0) { return false; }
+
+    int corner_swaps = CubePermutationParitySwaps(corner_positions, CUBE_CORNER_COUNT);
+    if (corner_swaps < 0) { return false; }
+
+    swaps += edge_swaps;
+    swaps += corner_swaps;
 
     if (swaps % 2 != 0) return false;
 
