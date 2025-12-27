@@ -99,49 +99,92 @@ int ModWrap(int x, int n);
 
 int Index2D(int x, int y, int width, int height);
 
+// STACK //////////////////////////////////////////////////////////////////////
+#define DECLARE_TYPED_STACK(type, name)                                       \
+    typedef struct {                                                          \
+        type* items;                                                          \
+        u32 head;                                                             \
+        u32 capacity;                                                         \
+    } name;                                                                   \
+                                                                              \
+    void name##_init(name* stack, type* items, u32 capacity);                 \
+    bool name##_append(name* stack, type item);                               \
+    bool name##_pop(name* stack, type* item);                                 \
+    u32 name##_length(name* stack);                                           \
+    void name##_clear(name* stack);                                           \
 
-#define DEFINE_TYPED_STACK(type, name)                                         \
-    typedef struct {                                                           \
-        type *items;                                                           \
-        u32 head;                                                              \
-        u32 capacity;                                                          \
-    } name;                                                                    \
-                                                                               \
-    static inline void name##_init(name *stack, type* items, u32 capacity);    \
-    static inline bool name##_append(name *stack, type item);                  \
-    static inline bool name##_pop(name *stack, type *item);                    \
-    static inline u32 name##_length(name *stack);                              \
-    static inline void name##_clear(name *stack);                              \
-                                                                               \
-    static inline void name##_init(name *stack, type* items, u32 capacity) {   \
-        stack->items = items;                                                  \
-        stack->capacity = capacity;                                            \
-        name##_clear(stack);                                                   \
-    }                                                                          \
-                                                                               \
-    static inline bool name##_append(name *stack, type item) {                 \
-        if (stack->head >= stack->capacity) return false;                      \
-                                                                               \
-        stack->items[stack->head++] = item;                                    \
-                                                                               \
-        return true;                                                           \
-    }                                                                          \
-                                                                               \
-    static inline bool name##_pop(name *stack, type *item) {                   \
-        if (stack->head == 0) return false;                                    \
-                                                                               \
-        *item = stack->items[stack->head--];                                   \
-                                                                               \
-        return true;                                                           \
-    }                                                                          \
-                                                                               \
-    static inline u32 name##_length(name *stack) {                             \
-        return stack->head;                                                    \
-    }                                                                          \
-                                                                               \
-    static inline void name##_clear(name *stack) {                             \
-        stack->head = 0;                                                       \
-    }                                                                          \
+#define DEFINE_TYPED_STACK(type, name)                                        \
+    void name##_init(name* stack, type* items, u32 capacity) {                \
+        stack->items = items;                                                 \
+        stack->capacity = capacity;                                           \
+        name##_clear(stack);                                                  \
+    }                                                                         \
+                                                                              \
+    bool name##_append(name* stack, type item) {                              \
+        if (stack->head >= stack->capacity) return false;                     \
+        stack->items[stack->head++] = item;                                   \
+        return true;                                                          \
+    }                                                                         \
+                                                                              \
+    bool name##_pop(name* stack, type* item) {                                \
+        if (stack->head == 0) return false;                                   \
+        *item = stack->items[stack->head--];                                  \
+        return true;                                                          \
+    }                                                                         \
+                                                                              \
+    u32 name##_length(name* stack) {                                          \
+        return stack->head;                                                   \
+    }                                                                         \
+                                                                              \
+    void name##_clear(name* stack) {                                          \
+        stack->head = 0;                                                      \
+    }                                                                         \
+
+// QUEUE //////////////////////////////////////////////////////////////////////
+#define DECLARE_TYPED_QUEUE(type, name)                                       \
+    typedef struct {                                                          \
+        type* items;                                                          \
+        u32 head;                                                             \
+        u32 tail;                                                             \
+        u32 capacity;                                                         \
+    } name;                                                                   \
+                                                                              \
+    void name##_init(name* queue, type* items, u32 capacity);                 \
+    bool name##_append(name* queue, type item);                               \
+    bool name##_pop(name* queue, type* item);                                 \
+    u32 name##_length(name* queue);                                           \
+    void name##_clear(name* queue);                                           \
+
+#define DEFINE_TYPED_QUEUE(type, name)                                        \
+    void name##_init(name* queue, type* items, u32 capacity) {                \
+        queue->items = items;                                                 \
+        queue->capacity = capacity;                                           \
+        name##_clear(queue);                                                  \
+    }                                                                         \
+                                                                              \
+    bool name##_append(name *queue, type item) {                              \
+        u32 next = (queue->tail + 1) % queue->capacity;                       \
+        if (next == queue->head) return false;                                \
+        queue->items[queue->tail] = item;                                     \
+        queue->tail = next;                                                   \
+        return true;                                                          \
+    }                                                                         \
+                                                                              \
+    bool name##_pop(name *queue, type *item) {                                \
+        if (queue->tail == queue->head) return false;                         \
+        *item = queue->items[queue->head];                                    \
+        queue->head = (queue->head + 1) % queue->capacity;                    \
+        return true;                                                          \
+    }                                                                         \
+                                                                              \
+    u32 name##_length(name *queue) {                                          \
+        return ((queue->tail+queue->capacity)-queue->head) % queue->capacity; \
+    }                                                                         \
+                                                                              \
+    void name##_clear(name *queue) {                                          \
+        queue->head = 0;                                                      \
+        queue->tail = 0;                                                      \
+    }                                                                         \
 
 
 #endif  /* CORE_H */

@@ -6,7 +6,11 @@
 #include "cube.h"
 
 
-void SolveCube(Arena* arena, Cube* cube);
+DECLARE_TYPED_STACK(TurnType, MoveStack)
+DECLARE_TYPED_QUEUE(u32, QueueU32)
+
+
+MoveStack* SolveCube(Arena* arena, Cube* cube);
 
 
 #endif  /* SOLVE_H */

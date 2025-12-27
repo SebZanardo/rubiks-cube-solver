@@ -20,8 +20,7 @@ static const float FACE_RENDER_OFFSET = FACE_RENDER_SPACING + TILE_RENDER_SPACIN
 static const float CUBE_RENDER_WIDTH = 15 + (TILE_RENDER_SPACING * 10);
 static const float CUBE_RENDER_HEIGHT = 11 + (TILE_RENDER_SPACING * 8);
 
-static const int SHUFFLE_LENGTH = 25;
-static const int TURN_DIRECTIONS = 3;
+static const int SHUFFLE_LENGTH = 12;
 
 
 // Lookup tables
@@ -63,26 +62,30 @@ static const u8 CUBE_SIDE_ROTATION_TABLE[CUBE_COLOUR_COUNT][3][4] = {
     { {4, 0, 0, 0}, {3, 7, 7, 7}, {2, 6, 6, 6} },       // Orange Face
     { {6, 6, 6, 6}, {5, 5, 5, 5}, {4, 4, 4, 4} }        // Yellow Face
 };
-static const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12 * 2] = {
-    CUBE_GREEN, CUBE_WHITE,
-    CUBE_GREEN, CUBE_RED,
-    CUBE_GREEN, CUBE_YELLOW,
-    CUBE_GREEN, CUBE_ORANGE,
 
-    CUBE_RED, CUBE_WHITE,
-    CUBE_YELLOW, CUBE_RED,
-    CUBE_ORANGE, CUBE_YELLOW,
+// This ordering was chosen due to the solve code. Can loop through first 4
+// pairs to check that cross is solved. First 8 for F2L. The first colour in
+// the pair is the face that needs white on it.
+const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12 * 2] = {
+    CUBE_WHITE, CUBE_BLUE,
+    CUBE_WHITE, CUBE_RED,
+    CUBE_WHITE, CUBE_GREEN,
     CUBE_WHITE, CUBE_ORANGE,
 
-    CUBE_BLUE, CUBE_WHITE,
+    CUBE_GREEN, CUBE_RED,
+    CUBE_BLUE, CUBE_RED,
     CUBE_BLUE, CUBE_ORANGE,
-    CUBE_BLUE, CUBE_YELLOW,
-    CUBE_BLUE, CUBE_RED
+    CUBE_GREEN, CUBE_ORANGE,
+
+    CUBE_YELLOW, CUBE_GREEN,
+    CUBE_YELLOW, CUBE_RED,
+    CUBE_YELLOW, CUBE_BLUE,
+    CUBE_YELLOW, CUBE_ORANGE,
 };
-static const u8 CUBE_EDGE_POSITION_TABLE[12 * 2] = {
-    1, 5, 3, 7, 5, 1, 7, 3,
-    1, 3, 3, 5, 5, 7, 7, 1,
-    1, 1, 3, 7, 5, 5, 7, 3
+const u8 CUBE_EDGE_POSITION_TABLE[12 * 2] = {
+    1, 1, 3, 1, 5, 1, 7, 1,
+    3, 7, 7, 3, 3, 7, 7, 3,
+    1, 5, 3, 5, 5, 5, 7, 5
 };
 static const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8 * 3] = {
     CUBE_GREEN, CUBE_ORANGE, CUBE_WHITE,
@@ -97,6 +100,12 @@ static const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8 * 3] = {
 static const u8 CUBE_CORNER_POSITION_TABLE[8 * 3] = {
     0, 2, 6, 2, 4, 0, 4, 6, 2, 6, 0, 4,
     0, 2, 2, 2, 0, 0, 4, 6, 6, 6, 4, 4
+};
+
+const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT] = {
+    "F",  "R",  "U",  "B",  "L",  "D",
+    "F'", "R'", "U'", "B'", "L'", "D'",
+    "F2", "R2", "U2", "B2", "L2", "D2"
 };
 
 /*
@@ -150,32 +159,15 @@ void CubeHandScramble(Cube* cube) {
     // to the starting position. Then the scramble sequence is the shortest
     // solve sequence.
 
-    // This scramble is just 25 random moves, ensuring the same face was not
-    // turned two times in a row.
+    // This scramble is just random moves from solved position
 
-    u8 last_turn_face = GetRandomValue(0, CUBE_FACE_COUNT - 1);
+    CubeSetSolved(cube);
 
+    printf("----- SCRAMBLE -----\n");
     for (int i = 0; i < SHUFFLE_LENGTH; i++) {
-        // -2 because if >= last_turn_face then increment by one
-        u8 turn_face = GetRandomValue(0, CUBE_FACE_COUNT - 2);
-        u8 turn_direction = GetRandomValue(0, TURN_DIRECTIONS - 1);
-
-        // Fair logic to ensure not repeatedly turning same face
-        if (turn_face >= last_turn_face) {
-            turn_face++;
-        }
-
-        // Perform turn
-        if (turn_direction == 0) {
-            CubeFaceTurnClockwise(cube, turn_face);
-        } else if (turn_direction == 1) {
-            CubeFaceTurnAntiClockwise(cube, turn_face);
-        } else {
-            CubeFaceTurnDouble(cube, turn_face);
-        }
-
-        // Store last turned face
-        last_turn_face = turn_face;
+        TurnType turn = GetRandomValue(0, TURN_TYPE_COUNT - 1);
+        CubeTurn(cube, turn);
+        printf("%s\n", TURN_TYPE_NAMES[turn]);
     }
 }
 
@@ -382,11 +374,11 @@ static bool CubePieceParity(
             temp[j] = FaceGetTile(cube->faces[face], tile_index);
         }
 
-        // Invalid if piece shares multiple of same colour
-        // Invalid if piece has tiles of opposite colours
         for (int j = 0; j < count; j++) {
             CubeColour opposite = (temp[j] + CUBE_COLOUR_COUNT / 2) % CUBE_COLOUR_COUNT;
             for (int k = j + 1; k < count; k++) {
+            // Invalid if piece shares multiple of same colour
+            // Invalid if piece has tiles of opposite colours
                 if (temp[j] == temp[k]) return false;
                 if (opposite == temp[k]) return false;
             }

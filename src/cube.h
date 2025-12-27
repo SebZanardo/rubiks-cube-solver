@@ -43,6 +43,13 @@ typedef enum {
 } TurnType;
 
 
+// These need to be used by solve.c to locate edge positions for search
+extern const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12 * 2];
+extern const u8 CUBE_EDGE_POSITION_TABLE[12 * 2];
+
+extern const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT];
+
+
 // There are six tile colours.
 // Centre tiles never move so no need to store or simulate them.
 // So, on every face there are 8 tiles that can change.

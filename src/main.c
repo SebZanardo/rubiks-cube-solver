@@ -23,13 +23,13 @@ int main(void) {
     SetWindowIcon(icon);
 
     Arena arena;
-    ArenaInit(&arena, Kilobytes(1));
+    ArenaInit(&arena, Kilobytes(1));  // [ 24 / 1024 ] bytes used
 
     Arena arena_temp;
-    ArenaInit(&arena_temp, Kilobytes(1));
+    ArenaInit(&arena_temp, Kilobytes(1));  // [ 256 / 1024 ] bytes used
 
     Arena arena_solve;
-    ArenaInit(&arena_solve, Kilobytes(4));
+    ArenaInit(&arena_solve, Megabytes(5));  // [ ~4.3 / 5 ] megabytes used
 
     // Only one cube for now
     Cube cube;
