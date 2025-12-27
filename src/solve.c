@@ -107,6 +107,9 @@ static const u8 CROSS_TURN_TABLE[6][4] = {
 };
 
 
+typedef void (*SolveFunction)(Arena* arena, MoveStack* moves, Cube* cube);
+
+
 static void PerformTurn(MoveStack* moves, Cube* cube, TurnType turn_type) {
     CubeColour face = turn_type % 6;
 
@@ -129,6 +132,7 @@ static void PrintMoves(MoveStack* moves, int start, int end) {
     printf("\n");
 }
 
+/*
 static void PrintHash(u32 hash) {
     u32 position = (hash << 12) >> 12;
     printf("position: ");
@@ -142,6 +146,7 @@ static void PrintHash(u32 hash) {
     }
     printf("\n");
 }
+*/
 
 static u32 HashCrossCube(Cube* cube) {
     // This function searches the cube for the four white edges so that their
@@ -310,8 +315,24 @@ static bool IsCrossSolved(Cube* cube) {
     return true;
 }
 
-static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
+static void SolveStep(
+    SolveFunction func, Arena* arena, MoveStack* moves, Cube* cube
+) {
     int moves_before = MoveStack_length(moves);
+
+    clock_t start = clock();
+    func(arena, moves, cube);
+    clock_t end = clock();
+
+    double elapsed = (double) (end - start) / CLOCKS_PER_SEC;
+    printf("Time: %f seconds\n", elapsed);
+
+    int moves_after = MoveStack_length(moves);
+    PrintMoves(moves, moves_before, moves_after);
+}
+
+static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
+    printf("CROSS:\n");
 
     // We need to encode the position of the four edges into an integer to use
     // in the lookup table. Each of the 190,080 configurations needs a spot in
@@ -361,42 +382,23 @@ static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
         PerformTurn(moves, cube, path[i]);
     }
 
-    int moves_after = MoveStack_length(moves);
-    printf("Cross:\n");
-    PrintMoves(moves, moves_before, moves_after);
-
     // Sanity check
     assert(IsCrossSolved(cube));
 }
 
-static void SolveF2L(MoveStack* moves, Cube* cube) {
-    int moves_before = MoveStack_length(moves);
-
-    // TODO: Implement
-
-    int moves_after = MoveStack_length(moves);
+static void SolveF2L(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("F2L:\n");
-    PrintMoves(moves, moves_before, moves_after);
+    printf("NOT IMPLEMENTED YET\n");
 }
 
-static void SolveOLL(MoveStack* moves, Cube* cube) {
-    int moves_before = MoveStack_length(moves);
-
-    // TODO: Implement
-
-    int moves_after = MoveStack_length(moves);
+static void SolveOLL(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("OLL:\n");
-    PrintMoves(moves, moves_before, moves_after);
+    printf("NOT IMPLEMENTED YET\n");
 }
 
-static void SolvePLL(MoveStack* moves, Cube* cube) {
-    int moves_before = MoveStack_length(moves);
-
-    // TODO: Implement
-
-    int moves_after = MoveStack_length(moves);
+static void SolvePLL(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("PLL:\n");
-    PrintMoves(moves, moves_before, moves_after);
+    printf("NOT IMPLEMENTED YET\n");
 }
 
 MoveStack* SolveCube(Arena* arena, Cube* cube) {
@@ -406,12 +408,12 @@ MoveStack* SolveCube(Arena* arena, Cube* cube) {
     MoveStack* moves = ArenaPushStruct(arena, MoveStack);
     MoveStack_init(moves, items, MOVE_STACK_LEN);
 
-    printf("\n----- SOLVE -----\n\n");
+    printf("----- SOLVE -----\n");
 
-    SolveCross(arena, moves, cube);
-    SolveF2L(moves, cube);
-    SolveOLL(moves, cube);
-    SolvePLL(moves, cube);
+    SolveStep(SolveCross, arena, moves, cube);
+    SolveStep(SolveF2L, arena, moves, cube);
+    SolveStep(SolveOLL, arena, moves, cube);
+    SolveStep(SolvePLL, arena, moves, cube);
 
     return moves;
 }
