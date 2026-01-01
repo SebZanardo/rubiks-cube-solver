@@ -74,9 +74,15 @@
 // maximum of 8. Using IDDFS is not needed as the hashmap with all states can
 // fit into memory easily and BFS is faster.
 //
-// For F2L, PLL, and OLL I have simply used lookup tables containing
-// cases for all possible states with the minimal number of turns to solve
-// each.
+// For F2L, I decided to implement the intuitive method. This reduced the size
+// of the lookup tables to only 41 combinations. This made more sense for the
+// new goal of this project, to teach/train people to do CFOP method. When I
+// cannot use any moves in the lookup table I use the 'sexy move' (R U R') to
+// move strange cases to the top layer for the unsolved spots whilst
+// maintaining the solved pairs. I solve the F2L pairs in the order of the
+// lookup table.
+//
+// For OLL and PLL I use the two look method.
 
 
 #include "solve.h"
@@ -88,8 +94,9 @@ DEFINE_TYPED_QUEUE(u32, QueueU32)
 #define MOVE_STACK_LEN 300
 
 
-// (12*2)*(11*2)*(10*2)*(9*2) = 190,080. This can be divided by two due to edge
-// parity rules that states sum of edge parity must be even
+// (12*2)*(11*2)*(10*2)*(9*2) = 190,080. Due to edge parity rules that state
+// sum of edge parity must be even, this reduces the possible states for a
+// solved cube to half 95,040
 #define CROSS_EDGE_LEN (190080 / 2)
 
 // 2^20 = 1048576 as there are 20bits in cube hash. This ensures no collisions
@@ -110,6 +117,7 @@ static const u8 CROSS_TURN_TABLE[6][4] = {
 typedef void (*SolveFunction)(Arena* arena, MoveStack* moves, Cube* cube);
 
 
+// A function to store and perform the moves for the final solve
 static void PerformTurn(MoveStack* moves, Cube* cube, TurnType turn_type) {
     CubeColour face = turn_type % 6;
 
@@ -148,15 +156,78 @@ static void PrintHash(u32 hash) {
 }
 */
 
-static u32 HashCrossCube(Cube* cube) {
+static void SolveStep(
+    SolveFunction func, Arena* arena, MoveStack* moves, Cube* cube
+) {
+    int moves_before = MoveStack_length(moves);
+
+    clock_t start = clock();
+    func(arena, moves, cube);
+    clock_t end = clock();
+
+    double elapsed = (double) (end - start) / CLOCKS_PER_SEC;
+    printf("Time: %f seconds\n", elapsed);
+
+    int moves_after = MoveStack_length(moves);
+    PrintMoves(moves, moves_before, moves_after);
+}
+
+static bool IsCrossSolved(Cube* cube) {
+    for (int i = 0; i < 8; i++) {
+        CubeColour colour = CUBE_EDGE_COLOUR_TABLE[i];
+        u8 position = CUBE_EDGE_POSITION_TABLE[i];
+        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
+    }
+    return true;
+}
+
+static bool IsF2LSolved(Cube* cube) {
+    for (int i = 0; i < 16; i++) {
+        CubeColour colour = CUBE_EDGE_COLOUR_TABLE[i];
+        u8 position = CUBE_EDGE_POSITION_TABLE[i];
+        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
+    }
+    for (int i = 0; i < 12; i++) {
+        CubeColour colour = CUBE_CORNER_COLOUR_TABLE[i];
+        u8 position = CUBE_CORNER_POSITION_TABLE[i];
+        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
+    }
+    return true;
+}
+
+static bool IsOLLSolved(Cube* cube) {
+    if (!IsF2LSolved(cube)) {
+        return false;
+    }
+    for (int i = 0; i < 8; i++) {
+        if (FaceGetTile(cube->faces[CUBE_YELLOW], i) != CUBE_YELLOW) return false;
+    }
+    return true;
+}
+
+static bool IsPLLSolved(Cube* cube) {
+    for (int i = 0; i < 24; i++) {
+        CubeColour colour = CUBE_EDGE_COLOUR_TABLE[i];
+        u8 position = CUBE_EDGE_POSITION_TABLE[i];
+        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
+    }
+    for (int i = 0; i < 24; i++) {
+        CubeColour colour = CUBE_CORNER_COLOUR_TABLE[i];
+        u8 position = CUBE_CORNER_POSITION_TABLE[i];
+        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
+    }
+    return true;
+}
+
+static u32 ConvertToCrossCube(Cube* cube) {
     // This function searches the cube for the four white edges so that their
     // position and orientation can be stored in a simplified state.
     //
-    // The hash stores the four edges in sorted order (GW, RW, WO, BW). The
+    // The state stores the four edges in sorted order (GW, RW, WO, BW). The
     // first bit of each set of 5 bits stores the orientation (flipped/not)
     // then the last 4 bits stores the position between 0-12. The top 12 bits
     // are unused for the hash.
-    u32 hash = 0;
+    u32 state = 0;
 
     for (int i = 0; i < 12; i++) {
         CubeColour edge1 = CUBE_EDGE_COLOUR_TABLE[i * 2];
@@ -179,42 +250,27 @@ static u32 HashCrossCube(Cube* cube) {
 
             // Write position
             u8 chunk = i;
-
-            // Write flip bit: 0 is correct 1 is flipped
-            //
-            //         . 0 .
-            //         0 U 0
-            //         . 0 .
-            //
-            //  . 1 .  . 1 .  . 1 .  . 1 .
-            //  1 L 1  0 F 0  1 R 1  0 B 0
-            //  . 1 .  . 1 .  . 1 .  . 1 .
-            //
-            //         . 0 .
-            //         0 D 0
-            //         . 0 .
-            //
             if (current1 != CUBE_WHITE) {
                 chunk |= Bit(4);
             }
 
-            // Write into hashed block at correct position
-            hash |= (chunk << (j * 5));
+            // Write into state block at correct position
+            state |= (chunk << (j * 5));
             break;
         }
     }
 
-    return hash;
+    return state;
 }
 
-static u32 TurnHashCross(u32 hash, TurnType turn_type) {
-    // Extract sections from hash for easy modification
+static u32 TurnCrossCube(u32 state, TurnType turn_type) {
+    // Extract sections from state for easy modification
     u8 edge_position[4];
     u8 edge_orientation[4];
     u8 seen[4];
     for (int i = 0; i < 4; i++) {
         int shift = i * 5;
-        u8 chunk = (hash >> shift) & 0x1F;
+        u8 chunk = (state >> shift) & 0x1F;
         edge_position[i] = chunk & 0xF;
         edge_orientation[i] = chunk >> 4;
         seen[i] = false;
@@ -256,47 +312,47 @@ static u32 TurnHashCross(u32 hash, TurnType turn_type) {
         }
     }
 
-    // Construct hash
-    u32 new_hash = 0;
+    // Construct state
+    u32 new_state = 0;
     for (int i = 0; i < 4; i++) {
         int shift = i * 5;
         u8 chunk = edge_position[i] | (edge_orientation[i] << 4);
-        new_hash |= (chunk << shift);
+        new_state |= (chunk << shift);
     }
 
-    return new_hash;
+    return new_state;
 }
 
 static u32 CrossBFS(
-    u32* visited, QueueU32* queue, u32 starting_hash, u32 target_hash
+    u32* visited, QueueU32* queue, u32 starting_state, u32 target_hash
 ) {
-    // Add current hash to queue as first element and mark in visited
-    QueueU32_append(queue, starting_hash);
-    visited[starting_hash] = starting_hash | (TURN_TYPE_COUNT << 20);
+    // Add current state to queue as first element and mark in visited
+    QueueU32_append(queue, starting_state);
+    visited[starting_state] = starting_state | (TURN_TYPE_COUNT << 20);
 
     // Check if cross already solved
-    if (starting_hash == target_hash) {
+    if (starting_state == target_hash) {
         return target_hash;
     }
 
-    u32 current_hash = starting_hash;
+    u32 current_state = starting_state;
 
     // BFS
     while (QueueU32_length(queue) > 0) {
-        QueueU32_pop(queue, &current_hash);
+        QueueU32_pop(queue, &current_state);
         for (int turn_type = 0; turn_type < TURN_TYPE_COUNT; turn_type++) {
             // Perform all 18 move types from this position
-            u32 new_hash = TurnHashCross(current_hash, turn_type);
+            u32 new_state = TurnCrossCube(current_state, turn_type);
 
             // Check if new hash is in visited
-            if (visited[new_hash] != 0) continue;
+            if (visited[new_state] != 0) continue;
 
             // If new record and add to queue
-            QueueU32_append(queue, new_hash);
-            visited[new_hash] = current_hash | (turn_type << 20);
+            QueueU32_append(queue, new_state);
+            visited[new_state] = current_state | (turn_type << 20);
 
             // Check if hash is target hash and terminate search
-            if (new_hash == target_hash) {
+            if (new_state == target_hash) {
                 return target_hash;
             }
         }
@@ -304,31 +360,6 @@ static u32 CrossBFS(
 
     // Failed to solve... this should never be hit
     return UINT32_MAX;
-}
-
-static bool IsCrossSolved(Cube* cube) {
-    for (int i = 0; i < 8; i++) {
-        CubeColour colour = CUBE_EDGE_COLOUR_TABLE[i];
-        u8 position = CUBE_EDGE_POSITION_TABLE[i];
-        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
-    }
-    return true;
-}
-
-static void SolveStep(
-    SolveFunction func, Arena* arena, MoveStack* moves, Cube* cube
-) {
-    int moves_before = MoveStack_length(moves);
-
-    clock_t start = clock();
-    func(arena, moves, cube);
-    clock_t end = clock();
-
-    double elapsed = (double) (end - start) / CLOCKS_PER_SEC;
-    printf("Time: %f seconds\n", elapsed);
-
-    int moves_after = MoveStack_length(moves);
-    PrintMoves(moves, moves_before, moves_after);
 }
 
 static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
@@ -339,7 +370,7 @@ static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
     // the array. To reconstruct the path we need to store the turn type and
     // parent at each u32 index in the array, luckily there can only be one
     // parent as two moves that result in the same hash at the same BFS step
-    // either can be picked. Due to the hash side this cannot fit into a u16:
+    // either can be picked. Due to the state size it cannot fit into a u16:
     //
     // |    (TurnType)    |            (parent hash)           |
     // |  0000 0000 0000  |   0 0000  0 0000  0 0000  0 0000   |
@@ -350,7 +381,7 @@ static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
     Cube solved_cube;
     CubeInit(arena, &solved_cube);
     CubeSetSolved(&solved_cube);
-    u32 target_hash = HashCrossCube(&solved_cube);
+    u32 target = ConvertToCrossCube(&solved_cube);
 
     // Allocate hashtable to store parent hashes and turn types
     u32* visited = ArenaPushArray(arena, CROSS_HASHMAP_LEN, u32);
@@ -360,20 +391,20 @@ static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
     QueueU32 queue;
     QueueU32_init(&queue, items, CROSS_EDGE_LEN);
 
-    u32 starting_hash = HashCrossCube(cube);
+    u32 start = ConvertToCrossCube(cube);
 
     // Run BFS
-    assert(CrossBFS(visited, &queue, starting_hash, target_hash) == target_hash);
+    assert(CrossBFS(visited, &queue, start, target) == target);
 
     // Reconstruct path. Start at end and traverse backwards. Max length 8
     TurnType path[8];
     int path_length = 0;
-    u32 current_hash = target_hash;
+    u32 current_state = target;
     for (int i = 0; i < 8; i++) {
-        if (current_hash == starting_hash) break;
-        u32 hash_pair = visited[current_hash];
+        if (current_state == start) break;
+        u32 hash_pair = visited[current_state];
         TurnType move = hash_pair >> 20;
-        current_hash = (hash_pair << 12) >> 12;
+        current_state = (hash_pair << 12) >> 12;
         path[path_length++] = move;
     }
 
@@ -389,16 +420,25 @@ static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
 static void SolveF2L(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("F2L:\n");
     printf("NOT IMPLEMENTED YET\n");
+
+    // Sanity check
+    // assert(IsF2LSolved(cube));
 }
 
 static void SolveOLL(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("OLL:\n");
     printf("NOT IMPLEMENTED YET\n");
+
+    // Sanity check
+    // assert(IsOLLSolved(cube));
 }
 
 static void SolvePLL(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("PLL:\n");
     printf("NOT IMPLEMENTED YET\n");
+
+    // Sanity check
+    // assert(IsPLLSolved(cube));
 }
 
 MoveStack* SolveCube(Arena* arena, Cube* cube) {

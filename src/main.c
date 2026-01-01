@@ -42,53 +42,69 @@ int main(void) {
     bool valid = CubeValid(&arena_temp, &cube);
     ArenaReset(&arena_temp);
 
+    bool testing = false;
+
     while (!WindowShouldClose()) {
         Rectangle cube_rect = (Rectangle) {
             0, 0, GetScreenWidth(), GetScreenHeight()
         };
 
-        Vector2 mouse_position = GetMousePosition();
+        if (testing) {
+            if (InputPressed(INPUT_TEST)) {
+                testing = false;
+            }
 
-        int key = GetKeyPressed();
-        if (key >= KEY_ONE && key <= KEY_SIX) {
-            active_colour = key - KEY_ONE;
-        }
-
-        // UPDATE
-        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            CubeMousePaint(&cube, mouse_position, active_colour, cube_rect);
-
-            valid = CubeValid(&arena_temp, &cube);
+            // Every frame create new scramble, assert it is valid and solve
+            CubeHandScramble(&cube);
+            assert(CubeValid(&arena_temp, &cube));
             ArenaReset(&arena_temp);
-        }
+            SolveCube(&arena_solve, &cube);
+        } else {
+            Vector2 mouse_position = GetMousePosition();
 
-        if (InputPressed(INPUT_RESET)) {
-            CubeSetSolved(&cube);
-            valid = true;
-        }
+            int key = GetKeyPressed();
+            if (key >= KEY_ONE && key <= KEY_SIX) {
+                active_colour = key - KEY_ONE;
+            }
 
-        if (valid) {
-            for (u8 i = 0; i < CUBE_COLOUR_COUNT; i++) {
-                if (InputPressed(i)) {
-                    if (InputDown(INPUT_PRIME)) {
-                        CubeFaceTurnAntiClockwise(&cube, i);
-                    } else if (InputDown(INPUT_DOUBLE)) {
-                        CubeFaceTurnDouble(&cube, i);
-                    } else {
-                        CubeFaceTurnClockwise(&cube, i);
+            // UPDATE
+            if (InputPressed(INPUT_TEST)) {
+                testing = true;
+            }
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                CubeMousePaint(&cube, mouse_position, active_colour, cube_rect);
+
+                valid = CubeValid(&arena_temp, &cube);
+                ArenaReset(&arena_temp);
+            }
+
+            if (InputPressed(INPUT_RESET)) {
+                CubeSetSolved(&cube);
+                valid = true;
+            }
+
+            if (valid) {
+                for (u8 i = 0; i < CUBE_COLOUR_COUNT; i++) {
+                    if (InputPressed(i)) {
+                        if (InputDown(INPUT_PRIME)) {
+                            CubeFaceTurnAntiClockwise(&cube, i);
+                        } else if (InputDown(INPUT_DOUBLE)) {
+                            CubeFaceTurnDouble(&cube, i);
+                        } else {
+                            CubeFaceTurnClockwise(&cube, i);
+                        }
                     }
+                }
+
+                if (InputPressed(INPUT_SHUFFLE)) {
+                    CubeHandScramble(&cube);
                 }
             }
 
-            if (InputPressed(INPUT_SHUFFLE)) {
-                // Always scramble from solved position
-                CubeSetSolved(&cube);
-                CubeHandScramble(&cube);
+            if (valid && InputPressed(INPUT_SOLVE)) {
+                SolveCube(&arena_solve, &cube);
             }
-        }
-
-        if (valid && InputPressed(INPUT_SOLVE)) {
-            SolveCube(&arena_solve, &cube);
         }
 
         // RENDER

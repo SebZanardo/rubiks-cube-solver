@@ -64,8 +64,7 @@ static const u8 CUBE_SIDE_ROTATION_TABLE[CUBE_COLOUR_COUNT][3][4] = {
 };
 
 // This ordering was chosen due to the solve code. Can loop through first 4
-// pairs to check that cross is solved. First 8 for F2L. The first colour in
-// the pair is the face that needs white on it.
+// pairs to check that cross is solved. First 8 for F2L.
 const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12 * 2] = {
     CUBE_WHITE, CUBE_BLUE,
     CUBE_WHITE, CUBE_RED,
@@ -80,26 +79,27 @@ const enum8(CubeColour) CUBE_EDGE_COLOUR_TABLE[12 * 2] = {
     CUBE_YELLOW, CUBE_GREEN,
     CUBE_YELLOW, CUBE_RED,
     CUBE_YELLOW, CUBE_BLUE,
-    CUBE_YELLOW, CUBE_ORANGE,
+    CUBE_YELLOW, CUBE_ORANGE
 };
 const u8 CUBE_EDGE_POSITION_TABLE[12 * 2] = {
     1, 1, 3, 1, 5, 1, 7, 1,
     3, 7, 7, 3, 3, 7, 7, 3,
     1, 5, 3, 5, 5, 5, 7, 5
 };
-static const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8 * 3] = {
-    CUBE_GREEN, CUBE_ORANGE, CUBE_WHITE,
-    CUBE_GREEN, CUBE_WHITE, CUBE_RED,
-    CUBE_GREEN, CUBE_RED, CUBE_YELLOW,
-    CUBE_GREEN, CUBE_YELLOW, CUBE_ORANGE,
-    CUBE_BLUE, CUBE_RED, CUBE_WHITE,
-    CUBE_BLUE, CUBE_WHITE, CUBE_ORANGE,
-    CUBE_BLUE, CUBE_ORANGE, CUBE_YELLOW,
-    CUBE_BLUE, CUBE_YELLOW, CUBE_RED
+const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8 * 3] = {
+    CUBE_WHITE, CUBE_ORANGE, CUBE_BLUE,
+    CUBE_WHITE, CUBE_BLUE, CUBE_RED,
+    CUBE_WHITE, CUBE_RED, CUBE_GREEN,
+    CUBE_WHITE, CUBE_GREEN, CUBE_ORANGE,
+
+    CUBE_YELLOW, CUBE_ORANGE, CUBE_GREEN,
+    CUBE_YELLOW, CUBE_GREEN, CUBE_RED,
+    CUBE_YELLOW, CUBE_RED, CUBE_BLUE,
+    CUBE_YELLOW, CUBE_BLUE, CUBE_ORANGE
 };
-static const u8 CUBE_CORNER_POSITION_TABLE[8 * 3] = {
-    0, 2, 6, 2, 4, 0, 4, 6, 2, 6, 0, 4,
-    0, 2, 2, 2, 0, 0, 4, 6, 6, 6, 4, 4
+const u8 CUBE_CORNER_POSITION_TABLE[8 * 3] = {
+    0, 0, 2, 2, 0, 2, 4, 0, 2, 6, 0, 2,
+    0, 4, 6, 2, 4, 6, 4, 4, 6, 6, 4, 6
 };
 
 const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT] = {

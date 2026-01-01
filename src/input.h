@@ -21,6 +21,8 @@ typedef enum {
     INPUT_RESET,
     INPUT_SOLVE,
 
+    INPUT_TEST,
+
     INPUT_ACTION_COUNT
 } InputAction;
 

@@ -14,7 +14,9 @@ static const KeyboardKey input_keymap_table[INPUT_ACTION_COUNT] = {
 
     KEY_S,
     KEY_W,
-    KEY_SPACE
+    KEY_SPACE,
+
+    KEY_T
 };
 
 

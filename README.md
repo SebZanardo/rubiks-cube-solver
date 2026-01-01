@@ -21,5 +21,6 @@ __CONTROLS:__
 * `S` Scramble cube
 * `W` Reset cube back to solved state
 * `SPACE` Solve cube
+* `T` Test mode, the cube is scrambled and solved every frame to test for bugs
 
 <img alt="cover" width="360" height="360" src=https://github.com/SebZanardo/rubiks-cube-solver/blob/main/cover.png ></img>
