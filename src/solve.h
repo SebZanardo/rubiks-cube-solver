@@ -11,6 +11,7 @@ DECLARE_TYPED_QUEUE(u32, QueueU32)
 
 
 MoveStack* SolveCube(Arena* arena, Cube* cube);
+void F2LTestLookup(Arena* arena, Cube* cube);
 
 
 #endif  /* SOLVE_H */

@@ -74,13 +74,13 @@
 // maximum of 8. Using IDDFS is not needed as the hashmap with all states can
 // fit into memory easily and BFS is faster.
 //
-// For F2L, I decided to implement the intuitive method. This reduced the size
-// of the lookup tables to only 41 combinations. This made more sense for the
-// new goal of this project, to teach/train people to do CFOP method. When I
-// cannot use any moves in the lookup table I use the 'sexy move' (R U R') to
-// move strange cases to the top layer for the unsolved spots whilst
+// For F2L, I decided to implement the intuitive method. This made more sense
+// for the new goal of this project, to teach/train people to do CFOP method.
+// When I cannot use any moves in the lookup table I use the 'sexy move'
+// (R U R') to move pieces to the top layer for the unsolved spots whilst
 // maintaining the solved pairs. I solve the F2L pairs in the order of the
-// lookup table.
+// lookup table. All sequences in lookup table only manipulate respective
+// pair and cannot mess up other solved pairs.
 //
 // For OLL and PLL I use the two look method.
 
@@ -103,6 +103,9 @@ DEFINE_TYPED_QUEUE(u32, QueueU32)
 // but only 95,040 spots can be filled so hashmap is ~1/10 filled...
 #define CROSS_HASHMAP_LEN 1048576
 
+#define F2L_TOP_LAYER_LEN 24
+#define F2L_ALGO_LEN 12
+
 
 static const u8 CROSS_TURN_TABLE[6][4] = {
     { 2, 4, 8, 7 },     // F
@@ -111,6 +114,76 @@ static const u8 CROSS_TURN_TABLE[6][4] = {
     { 0, 6, 10, 5 },    // B
     { 3, 7, 11, 6 },    // L
     { 8, 9, 10, 11 }    // D
+};
+
+static const CubeColour F2L_COLOUR_ORDER[4] = {
+    CUBE_BLUE, CUBE_RED, CUBE_GREEN, CUBE_ORANGE
+};
+
+// In the order of the white corners from the cube corner lookup table
+static const CubeColour F2L_EDGE_COLOUR_TABLE[8 * 2] = {
+    CUBE_ORANGE, CUBE_BLUE,
+    CUBE_BLUE, CUBE_RED,
+    CUBE_RED, CUBE_GREEN,
+    CUBE_GREEN, CUBE_ORANGE,
+    CUBE_YELLOW, CUBE_RED,
+    CUBE_YELLOW, CUBE_GREEN,
+    CUBE_YELLOW, CUBE_ORANGE,
+    CUBE_YELLOW, CUBE_BLUE,
+};
+
+static const u8 F2L_EDGE_POSITION_TABLE[8 * 2] = {
+    7, 3, 7, 3, 7, 3, 7, 3,
+    3, 5,
+    1, 5,
+    7, 5,
+    5, 5,
+};
+
+// This F2L lookup table contain 24 combinations for when corner its spot and
+// the edge is also on the top layer.
+//
+// Encoded in best way I could come up with. white facing: U, U', R, R', F, F'
+// Then edges in relation to this corner in positions going clockwise from
+// left of starting corner. These turns assume front face is colour on top of
+// corner when in F config, up turns are for the yellow face, and right face is
+// other colour on corner.
+static const TurnType F2L_TOP_LAYER_LOOKUP[F2L_TOP_LAYER_LEN][F2L_ALGO_LEN] = {
+    // U
+    {TURN_DOWN, TURN_RIGHT, TURN_DOWN_DOUBLE, TURN_RIGHT_PRIME, TURN_DOWN, TURN_RIGHT, TURN_DOWN_PRIME, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_DOWN_DOUBLE, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_DOWN, TURN_RIGHT, TURN_DOWN_PRIME, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_DOWN, TURN_FRONT, TURN_RIGHT_PRIME, TURN_FRONT_PRIME, TURN_RIGHT, TURN_DOWN, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_RIGHT, TURN_DOWN_DOUBLE, TURN_RIGHT_PRIME, TURN_DOWN_PRIME, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+
+    // U'
+    {TURN_DOWN_DOUBLE, TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN_DOUBLE, TURN_FRONT, TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_FRONT_PRIME, TURN_DOWN_DOUBLE, TURN_FRONT, TURN_DOWN, TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_DOWN, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT},
+
+    // F
+    {TURN_DOWN_PRIME, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_DOWN_DOUBLE, TURN_RIGHT, TURN_DOWN_PRIME, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_DOWN_PRIME, TURN_RIGHT, TURN_DOWN_DOUBLE, TURN_RIGHT_PRIME, TURN_DOWN_DOUBLE, TURN_RIGHT, TURN_DOWN_PRIME, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_DOWN_DOUBLE, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_DOWN, TURN_RIGHT, TURN_DOWN_PRIME, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+
+    // F'
+    {TURN_DOWN, TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_DOWN, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_FRONT, TURN_DOWN_DOUBLE, TURN_FRONT_DOUBLE, TURN_DOWN_PRIME, TURN_FRONT_DOUBLE, TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_TYPE_COUNT},
+
+    // R
+    {TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_DOWN_PRIME, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_DOWN, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+    {TURN_RIGHT_PRIME, TURN_DOWN_DOUBLE, TURN_RIGHT_DOUBLE, TURN_DOWN, TURN_RIGHT_DOUBLE, TURN_DOWN, TURN_RIGHT, TURN_TYPE_COUNT},
+    {TURN_DOWN_PRIME, TURN_RIGHT, TURN_DOWN_PRIME, TURN_RIGHT_PRIME, TURN_DOWN, TURN_RIGHT, TURN_DOWN, TURN_RIGHT_PRIME, TURN_TYPE_COUNT},
+
+    // R'
+    {TURN_DOWN, TURN_FRONT_PRIME, TURN_DOWN_DOUBLE, TURN_FRONT, TURN_DOWN_DOUBLE, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_DOWN, TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_DOWN_DOUBLE, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_DOWN_PRIME, TURN_FRONT_PRIME, TURN_DOWN, TURN_FRONT, TURN_TYPE_COUNT},
+    {TURN_RIGHT, TURN_DOWN_PRIME, TURN_RIGHT_PRIME, TURN_DOWN_DOUBLE, TURN_FRONT_PRIME, TURN_DOWN_PRIME, TURN_FRONT, TURN_TYPE_COUNT},
 };
 
 
@@ -223,8 +296,7 @@ static u32 ConvertToCrossCube(Cube* cube) {
     // This function searches the cube for the four white edges so that their
     // position and orientation can be stored in a simplified state.
     //
-    // The state stores the four edges in sorted order (GW, RW, WO, BW). The
-    // first bit of each set of 5 bits stores the orientation (flipped/not)
+    // The first bit of each set of 5 bits stores the orientation (flipped/not)
     // then the last 4 bits stores the position between 0-12. The top 12 bits
     // are unused for the hash.
     u32 state = 0;
@@ -417,28 +489,372 @@ static void SolveCross(Arena* arena, MoveStack* moves, Cube* cube) {
     assert(IsCrossSolved(cube));
 }
 
+// Returns position and orientation in single number
+// return divided by three round down to get pos
+// return - pos = orientation
+static u8 F2LCornerSlot(Cube* cube, u8 pair_index) {
+    assert(pair_index < 4);
+
+    int index = pair_index * 3;
+
+    CubeColour target1 = CUBE_CORNER_COLOUR_TABLE[index];
+    CubeColour target2 = CUBE_CORNER_COLOUR_TABLE[index + 1];
+    CubeColour target3 = CUBE_CORNER_COLOUR_TABLE[index + 2];
+
+    for (int i = 0; i < 8; i++) {
+        index = i * 3;
+
+        CubeColour face1 = CUBE_CORNER_COLOUR_TABLE[index];
+        u8 position1 = CUBE_CORNER_POSITION_TABLE[index];
+        CubeColour colour1 = FaceGetTile(cube->faces[face1], position1);
+
+        CubeColour face2 = CUBE_CORNER_COLOUR_TABLE[index + 1];
+        u8 position2 = CUBE_CORNER_POSITION_TABLE[index + 1];
+        CubeColour colour2 = FaceGetTile(cube->faces[face2], position2);
+
+        CubeColour face3 = CUBE_CORNER_COLOUR_TABLE[index + 2];
+        u8 position3 = CUBE_CORNER_POSITION_TABLE[index + 2];
+        CubeColour colour3 = FaceGetTile(cube->faces[face3], position3);
+
+        if (colour1 == target1 && colour2 == target2 && colour3 == target3) { return index; }
+        if (colour1 == target2 && colour2 == target3 && colour3 == target1) { return index + 1; }
+        if (colour1 == target3 && colour2 == target1 && colour3 == target2) { return index + 2; }
+    }
+    // Should never be hit
+    return UINT8_MAX;
+}
+
+// Returns position and orientation in single number
+// return divided by two round down to get pos
+// return - pos = orientation
+static u8 F2LEdgeSlot(Cube* cube, u8 pair_index) {
+    assert(pair_index < 4);
+
+    int index = pair_index * 2;
+
+    CubeColour target1 = F2L_EDGE_COLOUR_TABLE[index];
+    CubeColour target2 = F2L_EDGE_COLOUR_TABLE[index + 1];
+
+    for (int i = 0; i < 8; i++) {
+        index = i * 2;
+
+        CubeColour face1 = F2L_EDGE_COLOUR_TABLE[index];
+        u8 position1 = F2L_EDGE_POSITION_TABLE[index];
+        CubeColour colour1 = FaceGetTile(cube->faces[face1], position1);
+
+        CubeColour face2 = F2L_EDGE_COLOUR_TABLE[index + 1];
+        u8 position2 = F2L_EDGE_POSITION_TABLE[index + 1];
+        CubeColour colour2 = FaceGetTile(cube->faces[face2], position2);
+
+        if (colour1 == target1 && colour2 == target2) { return index; }
+        if (colour1 == target2 && colour2 == target1) { return index + 1; }
+    }
+    // Should never be hit
+    return UINT8_MAX;
+}
+
+bool F2LPairSolved(Cube* cube, u8 pair_index) {
+    assert(pair_index < 4);
+
+    for (int i = 0; i < 2; i++) {
+        int index = pair_index * 2 + i;
+        CubeColour colour = F2L_EDGE_COLOUR_TABLE[index];
+        u8 position = F2L_EDGE_POSITION_TABLE[index];
+        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
+    }
+    for (int i = 0; i < 3; i++) {
+        int index = pair_index * 3 + i;
+        CubeColour colour = CUBE_CORNER_COLOUR_TABLE[index];
+        u8 position = CUBE_CORNER_POSITION_TABLE[index];
+        if (FaceGetTile(cube->faces[colour], position) != colour) return false;
+    }
+    return true;
+}
+
+static void F2LSexyMove(MoveStack* moves, Cube* cube, u8 pair_offset) {
+    assert(pair_offset < 4);
+
+    TurnType side = (TurnType) F2L_COLOUR_ORDER[pair_offset];
+    PerformTurn(moves, cube, TURN_FRONT + side);
+    PerformTurn(moves, cube, TURN_DOWN);
+    PerformTurn(moves, cube, TURN_FRONT_PRIME + side);
+}
+
+static void SolveF2LPairTopLayer(MoveStack* moves, Cube* cube, u8 target, u8 edge_position, u8 edge_orientation, u8 corner_position, u8 corner_orientation) {
+    corner_position -= 4;
+    edge_position -= 4;
+
+    // Identify move sequence (0 - 24)
+    u8 edge_relative = ModWrap(edge_position - corner_position, 4);
+    u8 sequence = edge_relative + (4 * edge_orientation) + (8 * corner_orientation);
+
+    // Orient corner over pair hole
+    u8 turn_amount = ModWrap(target - corner_position, 4);
+    if (turn_amount == 1) {
+        PerformTurn(moves, cube, TURN_DOWN_PRIME);
+    } else if (turn_amount == 2) {
+        PerformTurn(moves, cube, TURN_DOWN_DOUBLE);
+    } else if (turn_amount == 3) {
+        PerformTurn(moves, cube, TURN_DOWN);
+    }
+
+    // Identify which side is front and right equivalent
+    CubeColour front = F2L_EDGE_COLOUR_TABLE[target*2];
+    CubeColour right = F2L_EDGE_COLOUR_TABLE[target*2+1];
+
+    // Perform move sequence
+    for (int j = 0; j < F2L_ALGO_LEN; j++) {
+        TurnType turn = F2L_TOP_LAYER_LOOKUP[sequence][j];
+
+        if (turn == TURN_TYPE_COUNT) { break; }
+
+        u8 turn_dir = (turn / 6) * 6;
+        TurnType actual = turn;
+
+        if (
+            turn == TURN_FRONT ||
+            turn == TURN_FRONT_PRIME ||
+            turn == TURN_FRONT_DOUBLE
+        ) {
+            actual = turn_dir + (TurnType) front;
+        }
+        if (
+            turn == TURN_RIGHT ||
+            turn == TURN_RIGHT_PRIME ||
+            turn == TURN_RIGHT_DOUBLE
+        ) {
+            actual = turn_dir + (TurnType) right;
+        }
+
+        PerformTurn(moves, cube, actual);
+    }
+}
+
+static void SetCorner(Cube* cube, u8 from, u8 to, u8 orientation) {
+    assert(orientation < 3);
+    for (int i = 0; i < 3; i++) {
+        CubeColour face = CUBE_CORNER_COLOUR_TABLE[from + i];
+        u8 position = CUBE_CORNER_POSITION_TABLE[from + i];
+        CubeColour colour = CUBE_CORNER_COLOUR_TABLE[to + ((i + orientation) % 3)];
+        FaceSetTile(&cube->faces[face], colour, position);
+    }
+}
+
+static void SetEdge(Cube* cube, u8 from, u8 to, u8 orientation) {
+    assert(orientation < 2);
+    for (int i = 0; i < 2; i++) {
+        CubeColour face = F2L_EDGE_COLOUR_TABLE[from + i];
+        u8 position = F2L_EDGE_POSITION_TABLE[from + i];
+        CubeColour colour = F2L_EDGE_COLOUR_TABLE[to + ((i + orientation) % 2)];
+        FaceSetTile(&cube->faces[face], colour, position);
+    }
+}
+
+void F2LTestLookup(Arena* arena, Cube* cube) {
+    ArenaReset(arena);
+    TurnType* items = ArenaPushArray(arena, MOVE_STACK_LEN, TurnType);
+
+    MoveStack* moves = ArenaPushStruct(arena, MoveStack);
+    MoveStack_init(moves, items, MOVE_STACK_LEN);
+
+    for (int lookup_index = 0; lookup_index < F2L_TOP_LAYER_LEN; lookup_index++) {
+        // Test for all colours
+        for (int c = 0; c < 4; c++) {
+            // Blank out cube
+            CubeSetSolid(cube, CUBE_COLOUR_COUNT);
+
+            // Paint on solved cross and other solved pairs
+            for (int i = 0; i < 8; i++) {
+                CubeColour colour = CUBE_EDGE_COLOUR_TABLE[i];
+                u8 position = CUBE_EDGE_POSITION_TABLE[i];
+                FaceSetTile(&cube->faces[colour], colour, position);
+                if (i < 4 && i != c) {
+                    SetEdge(cube, i*2, i*2, 0);
+                    SetCorner(cube, i*3, i*3, 0);
+                }
+            }
+
+            // Paint on lookup index start position
+            u8 corner_ori = (u8)(lookup_index / 8);
+            u8 corner_to = c * 3;
+            u8 corner_from = corner_to + 12;
+            assert(corner_to < 12);
+            assert(corner_from >= 12 && corner_from < 24);
+            SetCorner(cube, corner_from, corner_to, corner_ori);
+
+            u8 edge_ori = (u8)(lookup_index / 4) % 2;
+            u8 edge_offset = ModWrap(lookup_index % 4 + c, 4);
+            u8 edge_to = c * 2;
+            u8 edge_from = (edge_offset * 2) % 8 + 8;
+            assert(edge_to < 8);
+            assert(edge_from >= 8 && edge_from < 16);
+            SetEdge(cube, edge_from, edge_to, edge_ori);
+
+            // Get start position
+            u8 edge = F2LEdgeSlot(cube, c);
+            u8 edge_position = edge / 2;
+            u8 edge_orientation = edge - (edge_position * 2);
+
+            u8 corner = F2LCornerSlot(cube, c);
+            u8 corner_position = corner / 3;
+            u8 corner_orientation = corner - (corner_position * 3);
+
+            // Try solve for specific pair
+            SolveF2LPairTopLayer(moves, cube, c, edge_position, edge_orientation, corner_position, corner_orientation);
+
+            // Ensure solved without messing other pairs
+            assert(IsF2LSolved(cube) && "F2L algorithm failed!");
+
+            // So we don't overrun
+            MoveStack_clear(moves);
+        }
+    }
+}
+
 static void SolveF2L(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("F2L:\n");
-    printf("NOT IMPLEMENTED YET\n");
+
+    // Check for already solved pairs so we don't mess them up
+    // Only loop 4 - solved times to ensure lookup table is correct
+    bool pairs_solved[4];
+    int solved = 0;
+    for (int i = 0; i < 4; i++) {
+        pairs_solved[i] = F2LPairSolved(cube, i);
+        if (pairs_solved[i]) {
+            solved++;
+        }
+    }
+
+    // To catch when retrieval failed. If done twice without new pair solve
+    bool just_retrieved = false;
+
+    // Rather than forcing pair solve in certain order, solve pairs that are on
+    // the top layer first and only perform sexy moves if needed.
+    while (solved < 4) {
+        bool new_pair_solved = false;
+        // Search for edge corner pair on top layer
+        for (int i = 0; i < 4; i++) {
+            if (pairs_solved[i]) { continue; }
+
+            u8 edge = F2LEdgeSlot(cube, i);
+            u8 edge_position = edge / 2;
+            u8 edge_orientation = edge - (edge_position * 2);
+
+            u8 corner = F2LCornerSlot(cube, i);
+            u8 corner_position = corner / 3;
+            u8 corner_orientation = corner - (corner_position * 3);
+
+            if (edge_position >= 4 && corner_position >= 4) {
+                SolveF2LPairTopLayer(moves, cube, i, edge_position, edge_orientation, corner_position, corner_orientation);
+
+                new_pair_solved = true;
+                just_retrieved = false;
+                pairs_solved[i] = true;
+                solved++;
+                break;
+            }
+        }
+
+        if (!new_pair_solved) {
+            assert(!just_retrieved && "Failed to find solve after retrieve!");
+
+            // NOTE: This logic needs to ensure a pair is retrieved to the top
+            // layer before looping as if it doesn't we can get stuck in an
+            // infinite loop. There are three cases to consider:
+            // 1. Both pieces in same non-top-layer slot unsolved
+            // 2. Two pieces spread across two non-top-layer slots
+            // 3. One piece on top layer, one piece on non-top-layer slot
+            //
+            // Search for case one & three first as they require one sexy move
+            for (int i = 0; i < 4; i++) {
+                if (pairs_solved[i]) { continue; }
+
+                u8 edge = F2LEdgeSlot(cube, i);
+                u8 edge_position = edge / 2;
+
+                u8 corner = F2LCornerSlot(cube, i);
+                u8 corner_position = corner / 3;
+
+                if (edge_position == corner_position) {
+                    // Case 1:
+                    // Simple single sexy move
+                    F2LSexyMove(moves, cube, edge_position);
+                } else if (edge_position < 4 && corner_position < 4) {
+                    // Case 2:
+                    // Skip for now
+                    continue;
+                } else if (edge_position >= 4 || corner_position >= 4) {
+                    // Case 3:
+                    // Just ensure we rotate piece on top layer to one of three
+                    // untouched sides not affected by sexy move
+                    if (edge_position >= 4) {
+                        // Move edge out of way of sexy move
+                        if (ModWrap(edge_position - 4, 4) == corner_position) {
+                            PerformTurn(moves, cube, TURN_DOWN);
+                        }
+                        F2LSexyMove(moves, cube, corner_position);
+                    } else if (corner_position >= 4) {
+                        // Move corner out of way of sexy move
+                        if (ModWrap(corner_position - 4, 4) == edge_position) {
+                            PerformTurn(moves, cube, TURN_DOWN);
+                        }
+                        F2LSexyMove(moves, cube, edge_position);
+                    }
+                }
+
+                just_retrieved = true;
+                break;
+            }
+
+            if (just_retrieved) { continue; }
+
+            // Search for case two after as it requires two sexy moves
+            for (int i = 0; i < 4; i++) {
+                if (pairs_solved[i]) { continue; }
+
+                u8 edge = F2LEdgeSlot(cube, i);
+                u8 edge_position = edge / 2;
+
+                u8 corner = F2LCornerSlot(cube, i);
+                u8 corner_position = corner / 3;
+                if (edge_position < 4 && corner_position < 4) {
+                    // Case 2:
+                    // Sexy move order matters if they are one slot apart
+                    if (ModWrap(corner_position - edge_position, 4) == 2) {
+                        F2LSexyMove(moves, cube, corner_position);
+                        F2LSexyMove(moves, cube, edge_position);
+                    } else {
+                        F2LSexyMove(moves, cube, edge_position);
+                        F2LSexyMove(moves, cube, corner_position);
+                    }
+                }
+
+                just_retrieved = true;
+                break;
+            }
+        }
+    }
 
     // Sanity check
-    // assert(IsF2LSolved(cube));
+    assert(IsF2LSolved(cube));
 }
 
 static void SolveOLL(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("OLL:\n");
     printf("NOT IMPLEMENTED YET\n");
+    return;
 
     // Sanity check
-    // assert(IsOLLSolved(cube));
+    assert(IsOLLSolved(cube));
 }
 
 static void SolvePLL(Arena* arena, MoveStack* moves, Cube* cube) {
     printf("PLL:\n");
     printf("NOT IMPLEMENTED YET\n");
+    return;
 
     // Sanity check
-    // assert(IsPLLSolved(cube));
+    assert(IsPLLSolved(cube));
 }
 
 MoveStack* SolveCube(Arena* arena, Cube* cube) {

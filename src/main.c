@@ -36,13 +36,14 @@ int main(void) {
     CubeInit(&arena, &cube);
 
     CubeColour active_colour = CUBE_GREEN;
+    bool testing = false;
+
+    F2LTestLookup(&arena_solve, &cube);
 
     CubeSetSolved(&cube);
 
     bool valid = CubeValid(&arena_temp, &cube);
     ArenaReset(&arena_temp);
-
-    bool testing = false;
 
     while (!WindowShouldClose()) {
         Rectangle cube_rect = (Rectangle) {

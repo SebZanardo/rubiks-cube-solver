@@ -24,13 +24,14 @@ static const int SHUFFLE_LENGTH = 12;
 
 
 // Lookup tables
-static const Color CUBE_COLOUR_TABLE[CUBE_COLOUR_COUNT] = {
+static const Color CUBE_COLOUR_TABLE[CUBE_COLOUR_COUNT + 1] = {
     (Color) { 0,   255, 0,   255 },
     (Color) { 255, 0,   0,   255 },
     (Color) { 255, 255, 255, 255 },
     (Color) { 0,   0,   255, 255 },
     (Color) { 255, 155, 0,   255 },
     (Color) { 255, 255, 0,   255 },
+    (Color) { 0,   0,   0,   255 }
 };
 static const u8 CUBE_FACE_TILE_INDEX_TABLE[3][3] = {
     {0, 1, 2},
@@ -92,14 +93,14 @@ const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8 * 3] = {
     CUBE_WHITE, CUBE_RED, CUBE_GREEN,
     CUBE_WHITE, CUBE_GREEN, CUBE_ORANGE,
 
-    CUBE_YELLOW, CUBE_ORANGE, CUBE_GREEN,
-    CUBE_YELLOW, CUBE_GREEN, CUBE_RED,
+    CUBE_YELLOW, CUBE_BLUE, CUBE_ORANGE,
     CUBE_YELLOW, CUBE_RED, CUBE_BLUE,
-    CUBE_YELLOW, CUBE_BLUE, CUBE_ORANGE
+    CUBE_YELLOW, CUBE_GREEN, CUBE_RED,
+    CUBE_YELLOW, CUBE_ORANGE, CUBE_GREEN
 };
 const u8 CUBE_CORNER_POSITION_TABLE[8 * 3] = {
     0, 0, 2, 2, 0, 2, 4, 0, 2, 6, 0, 2,
-    0, 4, 6, 2, 4, 6, 4, 4, 6, 6, 4, 6
+    6, 4, 6, 4, 4, 6, 2, 4, 6, 0, 4, 6
 };
 
 const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT] = {
@@ -125,7 +126,7 @@ enum8(CubeColour) FaceGetTile(u32 face, u8 position) {
 }
 
 enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position) {
-    assert(colour < CUBE_COLOUR_COUNT);
+    assert(colour <= CUBE_COLOUR_COUNT);
     assert(position < FACE_TILE_COUNT);
 
     // Calculate tile bit offset. Each tile is 4 bits so offset = position * 4
@@ -148,6 +149,14 @@ void CubeSetSolved(Cube* cube) {
     for (u8 colour = 0; colour < CUBE_COLOUR_COUNT; colour++) {
         for (u8 position = 0; position < FACE_TILE_COUNT; position++) {
             FaceSetTile(&cube->faces[colour], colour, position);
+        }
+    }
+}
+
+void CubeSetSolid(Cube* cube, CubeColour solid) {
+    for (u8 colour = 0; colour < CUBE_COLOUR_COUNT; colour++) {
+        for (u8 position = 0; position < FACE_TILE_COUNT; position++) {
+            FaceSetTile(&cube->faces[colour], solid, position);
         }
     }
 }
@@ -377,8 +386,8 @@ static bool CubePieceParity(
         for (int j = 0; j < count; j++) {
             CubeColour opposite = (temp[j] + CUBE_COLOUR_COUNT / 2) % CUBE_COLOUR_COUNT;
             for (int k = j + 1; k < count; k++) {
-            // Invalid if piece shares multiple of same colour
-            // Invalid if piece has tiles of opposite colours
+                // Invalid if piece shares multiple of same colour
+                // Invalid if piece has tiles of opposite colours
                 if (temp[j] == temp[k]) return false;
                 if (opposite == temp[k]) return false;
             }

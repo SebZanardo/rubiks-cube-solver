@@ -113,8 +113,10 @@ typedef struct {
 
 
 enum8(CubeColour) FaceGetTile(u32 face, u8 position);
+enum8(CubeColour) FaceSetTile(u32* face, enum8(CubeColour) colour, u8 position);
 void CubeInit(Arena* arena, Cube* cube);
 void CubeSetSolved(Cube* cube);
+void CubeSetSolid(Cube* cube, CubeColour solid);
 void CubeHandScramble(Cube* cube);
 void CubeTurn(Cube* cube, TurnType turn);
 void CubeFaceTurnClockwise(Cube* cube, enum8(CubeColour) face_colour);

@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 
 
 typedef int8_t          i8 ;
@@ -112,7 +113,7 @@ int Index2D(int x, int y, int width, int height);
     bool name##_append(name* stack, type item);                               \
     bool name##_pop(name* stack, type* item);                                 \
     u32 name##_length(name* stack);                                           \
-    void name##_clear(name* stack);                                           \
+    void name##_clear(name* stack);
 
 #define DEFINE_TYPED_STACK(type, name)                                        \
     void name##_init(name* stack, type* items, u32 capacity) {                \
@@ -139,7 +140,7 @@ int Index2D(int x, int y, int width, int height);
                                                                               \
     void name##_clear(name* stack) {                                          \
         stack->head = 0;                                                      \
-    }                                                                         \
+    }
 
 // QUEUE //////////////////////////////////////////////////////////////////////
 #define DECLARE_TYPED_QUEUE(type, name)                                       \
@@ -154,7 +155,7 @@ int Index2D(int x, int y, int width, int height);
     bool name##_append(name* queue, type item);                               \
     bool name##_pop(name* queue, type* item);                                 \
     u32 name##_length(name* queue);                                           \
-    void name##_clear(name* queue);                                           \
+    void name##_clear(name* queue);
 
 #define DEFINE_TYPED_QUEUE(type, name)                                        \
     void name##_init(name* queue, type* items, u32 capacity) {                \
@@ -185,7 +186,7 @@ int Index2D(int x, int y, int width, int height);
     void name##_clear(name *queue) {                                          \
         queue->head = 0;                                                      \
         queue->tail = 0;                                                      \
-    }                                                                         \
+    }
 
 
 #endif  /* CORE_H */
