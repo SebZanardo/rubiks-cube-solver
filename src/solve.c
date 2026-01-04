@@ -78,9 +78,8 @@
 // for the new goal of this project, to teach/train people to do CFOP method.
 // When I cannot use any moves in the lookup table I use the 'sexy move'
 // (R U R') to move pieces to the top layer for the unsolved spots whilst
-// maintaining the solved pairs. I solve the F2L pairs in the order of the
-// lookup table. All sequences in lookup table only manipulate respective
-// pair and cannot mess up other solved pairs.
+// maintaining the solved pairs. All sequences in lookup table only manipulate
+// respective pair and cannot mess up other solved pairs.
 //
 // For OLL and PLL I use the two look method.
 
@@ -129,15 +128,12 @@ static const CubeColour F2L_EDGE_COLOUR_TABLE[8 * 2] = {
     CUBE_YELLOW, CUBE_RED,
     CUBE_YELLOW, CUBE_GREEN,
     CUBE_YELLOW, CUBE_ORANGE,
-    CUBE_YELLOW, CUBE_BLUE,
+    CUBE_YELLOW, CUBE_BLUE
 };
 
 static const u8 F2L_EDGE_POSITION_TABLE[8 * 2] = {
     7, 3, 7, 3, 7, 3, 7, 3,
-    3, 5,
-    1, 5,
-    7, 5,
-    5, 5,
+    3, 5, 1, 5, 7, 5, 5, 5
 };
 
 // This F2L lookup table contain 24 combinations for when corner its spot and
@@ -190,7 +186,71 @@ static const TurnType F2L_TOP_LAYER_LOOKUP[F2L_TOP_LAYER_LEN][F2L_ALGO_LEN] = {
 typedef void (*SolveFunction)(Arena* arena, MoveStack* moves, Cube* cube);
 
 
-// A function to store and perform the moves for the final solve
+// To check for double face turn that can be collapsed into one
+static void TidyMoveStack(MoveStack* moves) {
+    u32 length = MoveStack_length(moves);
+    if (length < 2) { return; }
+
+    TurnType last_turn = TURN_TYPE_COUNT;
+    MoveStack_get(moves, &last_turn, length - 1);
+    u8 last_face = last_turn % 6;
+
+    TurnType second_last_turn = TURN_TYPE_COUNT;
+    MoveStack_get(moves, &second_last_turn, length - 2);
+    u8 second_last_face = second_last_turn % 6;
+
+    if (last_face == second_last_face) {
+        // Double face turn! We can reduce movestack by one or two :))
+        MoveStack_pop(moves, &last_turn);
+        MoveStack_pop(moves, &second_last_turn);
+
+        u8 last_turn_dir = last_turn / 6;
+        u8 second_last_turn_dir = second_last_turn / 6;
+
+        TurnType turn = TURN_TYPE_COUNT;
+        if (last_turn_dir == 0) {
+            // Clockwise
+            if (second_last_turn_dir == 0) {
+                // + Clockwise = Double
+                turn = TURN_FRONT_DOUBLE + last_face;
+            } else if (second_last_turn_dir == 1) {
+                // + AntiClockwise = NONE
+            } else {
+                // + Double = AntiClockwise
+                turn = TURN_FRONT_PRIME + last_face;
+            }
+        } else if (last_turn_dir == 1) {
+            // AntiClockwise
+            if (second_last_turn_dir == 0) {
+                // + Clockwise = NONE
+            } else if (second_last_turn_dir == 1) {
+                // + AntiClockwise = Double
+                turn = TURN_FRONT_DOUBLE + last_face;
+            } else {
+                // + Double = Clockwise
+                turn = TURN_FRONT + last_face;
+            }
+        } else {
+            // Double
+            if (second_last_turn_dir == 0) {
+                // + Clockwise = AntiClockwise
+                turn = TURN_FRONT_PRIME + last_face;
+            } else if (second_last_turn_dir == 1) {
+                // + AntiClockwise = Clockwise
+                turn = TURN_FRONT + last_face;
+            } else {
+                // + Double = NONE
+            }
+        }
+
+        if (turn != TURN_TYPE_COUNT) {
+            MoveStack_append(moves, turn);
+        }
+        /*printf("REPLACED %s, %s with %s\n", TURN_TYPE_NAMES[last_turn], TURN_TYPE_NAMES[second_last_turn], TURN_TYPE_NAMES[turn]);*/
+    }
+}
+
+// To store and perform the moves for the final solve
 static void PerformTurn(MoveStack* moves, Cube* cube, TurnType turn_type) {
     CubeColour face = turn_type % 6;
 
@@ -203,6 +263,7 @@ static void PerformTurn(MoveStack* moves, Cube* cube, TurnType turn_type) {
     }
 
     MoveStack_append(moves, turn_type);
+    TidyMoveStack(moves);
 }
 
 static void PrintMoves(MoveStack* moves, int start, int end) {

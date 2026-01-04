@@ -103,10 +103,11 @@ const u8 CUBE_CORNER_POSITION_TABLE[8 * 3] = {
     6, 4, 6, 4, 4, 6, 2, 4, 6, 0, 4, 6
 };
 
-const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT] = {
+const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT+1] = {
     "F",  "R",  "U",  "B",  "L",  "D",
     "F'", "R'", "U'", "B'", "L'", "D'",
-    "F2", "R2", "U2", "B2", "L2", "D2"
+    "F2", "R2", "U2", "B2", "L2", "D2",
+    "NONE"
 };
 
 /*
@@ -167,16 +168,32 @@ void CubeHandScramble(Cube* cube) {
     // then solver would ensure it was not too simple to get the cube back
     // to the starting position. Then the scramble sequence is the shortest
     // solve sequence.
-
-    // This scramble is just random moves from solved position
+    //
+    // This scramble is just 25 random moves, ensuring the same face was not
+    // turned two times in a row.
 
     CubeSetSolved(cube);
 
     printf("----- SCRAMBLE -----\n");
+    u8 last_turn_face = GetRandomValue(0, CUBE_FACE_COUNT - 1);
+
     for (int i = 0; i < SHUFFLE_LENGTH; i++) {
-        TurnType turn = GetRandomValue(0, TURN_TYPE_COUNT - 1);
+        // -2 because if >= last_turn_face then increment by one
+        u8 turn_face = GetRandomValue(0, CUBE_FACE_COUNT - 2);
+        u8 turn_direction = GetRandomValue(0, 2);
+
+        // Fair logic to ensure not repeatedly turning same face
+        if (turn_face >= last_turn_face) {
+            turn_face++;
+        }
+
+        // Perform turn
+        TurnType turn = (turn_direction * 6) + turn_face;
         CubeTurn(cube, turn);
         printf("%s\n", TURN_TYPE_NAMES[turn]);
+
+        // Store last turned face
+        last_turn_face = turn_face;
     }
 }
 

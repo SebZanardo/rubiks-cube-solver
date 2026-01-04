@@ -112,6 +112,7 @@ int Index2D(int x, int y, int width, int height);
     void name##_init(name* stack, type* items, u32 capacity);                 \
     bool name##_append(name* stack, type item);                               \
     bool name##_pop(name* stack, type* item);                                 \
+    bool name##_get(name* stack, type* item, u32 index);                      \
     u32 name##_length(name* stack);                                           \
     void name##_clear(name* stack);
 
@@ -130,7 +131,13 @@ int Index2D(int x, int y, int width, int height);
                                                                               \
     bool name##_pop(name* stack, type* item) {                                \
         if (stack->head == 0) return false;                                   \
-        *item = stack->items[stack->head--];                                  \
+        *item = stack->items[--stack->head];                                  \
+        return true;                                                          \
+    }                                                                         \
+                                                                              \
+    bool name##_get(name* stack, type* item, u32 index) {                     \
+        if (index >= stack->head) return false;                               \
+        *item = stack->items[index];                                          \
         return true;                                                          \
     }                                                                         \
                                                                               \

@@ -49,7 +49,7 @@ extern const u8 CUBE_EDGE_POSITION_TABLE[12 * 2];
 extern const enum8(CubeColour) CUBE_CORNER_COLOUR_TABLE[8 * 3];
 extern const u8 CUBE_CORNER_POSITION_TABLE[8 * 3];
 
-extern const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT];
+extern const char *TURN_TYPE_NAMES[TURN_TYPE_COUNT + 1];
 
 
 // There are six tile colours.
