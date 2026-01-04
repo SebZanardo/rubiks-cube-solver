@@ -1,0 +1,18 @@
+CFOP:
+	https://jperm.net/3x3/cfop
+
+How to read notation:
+	https://www.youtube.com/watch?v=Ar_Zit1VLG0
+
+Intuitive F2L (24 top layer algorithms):
+	https://www.rubiksplace.com/speedcubing/F2L-algorithms/
+	https://drive.google.com/file/d/1nzAXYUWZJ6H2wIOXaHdWXep3W57tArbR/view
+
+Full OLL (ALL 57 algorithms):
+	https://jperm.net/algs/oll
+
+Full PLL (ALL 21 algorithms):
+	https://jperm.net/algs/pll
+
+Two-Phase-Algorithm (Herbert Kociemba):
+	https://kociemba.org/cube.htm

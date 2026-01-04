@@ -81,7 +81,11 @@
 // maintaining the solved pairs. All sequences in lookup table only manipulate
 // respective pair and cannot mess up other solved pairs.
 //
-// For OLL and PLL I use the two look method.
+// For OLL and PLL I use the full method which solves each stage in one
+// sequence. This was done to keep the move count low and it was easier to
+// check than all F2L combinations as for OLL and PLL it is just the top layer.
+// The lookup table doesn't account for rotation so I need to rotate the cube
+// at most three times before the algorithm can be performed.
 
 
 #include "solve.h"
